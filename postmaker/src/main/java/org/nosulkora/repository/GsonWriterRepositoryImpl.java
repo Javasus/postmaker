@@ -24,7 +24,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
      * @return boolean
      */
     public Boolean addWriter(Writer writer) {
-        List<Writer> writers = readExistingWriters();
+        List<Writer> writers = getAllWriters();
         writers.add(writer);
 
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
@@ -37,33 +37,57 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     }
 
     /**
-     * Возвращает writer, если он уже существует в writer.json.
+     * Возвращает writer, если он уже существует в .writer.json
      *
      * @param firstname Имя
      * @param lastName  Фамилия
-     * @return boolean
+     * @return writer
      */
-    public Optional<Writer> getWriter(String firstname, String lastName) {
+    public Optional<Writer> getWriterByName(String firstname, String lastName) {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
-            Type userListType = new TypeToken<List<Writer>>(){}.getType();
+            Type userListType = new TypeToken<List<Writer>>() {
+            }.getType();
             List<Writer> writers = gson.fromJson(fileReader, userListType);
 
             return writers.stream()
                     .filter(writer -> writer.getFirstName().equals(firstname))
                     .filter(writer -> writer.getLastname().equals(lastName)).findFirst();
 
-        } catch(Exception e) {
+        } catch (Exception e) {
             return Optional.empty();
         }
     }
 
-    private List<Writer> readExistingWriters() {
-        try(FileReader fileReader = new FileReader(FILE_PATH)) {
-            Type type = new TypeToken<List<Writer>>(){}.getType();
+    /**
+     * Возвращает список всех пользователей из файла writer.json.
+     *
+     * @return список пользователей
+     */
+    public List<Writer> getAllWriters() {
+        try (FileReader fileReader = new FileReader(FILE_PATH)) {
+            Type type = new TypeToken<List<Writer>>() {}.getType();
             List<Writer> existing = gson.fromJson(fileReader, type);
             return existing != null ? existing : new ArrayList<>();
         } catch (IOException e) {
             return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Возвращает writer по id из файла - writer.json.
+     *
+     * @param id Идентификатор writer'а
+     * @return writer
+     */
+    public Optional<Writer> getWriterById(Long id) {
+        try (FileReader fileReader = new FileReader(FILE_PATH)) {
+            Type userListType = new TypeToken<List<Writer>>() {
+            }.getType();
+            List<Writer> writers = gson.fromJson(fileReader, userListType);
+
+            return writers.stream().filter(writer -> writer.getId().equals(id)).findFirst();
+        } catch (IOException e) {
+            return Optional.empty();
         }
     }
 }

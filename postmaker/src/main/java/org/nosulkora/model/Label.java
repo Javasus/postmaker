@@ -1,18 +1,23 @@
 package org.nosulkora.model;
 
-import java.util.UUID;
-
 public class Label {
 
-    UUID id;
+    private static Long ID = 0L;
 
-    String name;
+    private Long id;
 
-    public UUID getId() {
+    private String name;
+
+    public Label(String name) {
+        this.id = ID++;
+        this.name = name;
+    }
+
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

@@ -1,32 +1,34 @@
 package org.nosulkora.model;
 
 import java.util.List;
-import java.util.UUID;
 
 public class Writer {
-    UUID id;
 
-    String firstName;
+    private static Long ID = 0L;
 
-    String lastname;
+    private Long id;
 
-    List<Post> posts;
+    private String firstName;
 
-    Status status;
+    private String lastname;
 
-    public Writer(UUID id, String firstName, String lastname, List<Post> posts, Status status) {
-        this.id = id;
+    private List<Post> posts;
+
+    private Status status;
+
+    public Writer(String firstName, String lastname, List<Post> posts, Status status) {
+        this.id = ID++;
         this.firstName = firstName;
         this.lastname = lastname;
         this.posts = posts;
         this.status = status;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

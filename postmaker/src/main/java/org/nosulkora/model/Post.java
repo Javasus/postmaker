@@ -1,27 +1,31 @@
 package org.nosulkora.model;
 
 import java.util.List;
-import java.util.UUID;
 
 public class Post {
-    UUID id;
 
-    String title;
+    private static Long ID = 0L;
 
-    String content;
+    private Long id;
 
-    List<Label> labels;
+    private String title;
 
-    public Post(String title, String content) {
+    private String content;
+
+    private List<Label> labels;
+
+    public Post(String title, String content, List<Label> labels) {
+        this.id = ID++;
         this.title = title;
         this.content = content;
+        this.labels = labels;
     }
 
-    public UUID getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(UUID id) {
+    public void setId(Long id) {
         this.id = id;
     }
 
