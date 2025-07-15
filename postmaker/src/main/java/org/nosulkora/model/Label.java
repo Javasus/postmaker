@@ -1,15 +1,15 @@
 package org.nosulkora.model;
 
-public class Label {
+import java.util.Random;
 
-    private static Long ID = 0L;
+public class Label {
 
     private Long id;
 
     private String name;
 
     public Label(String name) {
-        this.id = ID++;
+        this.id = new Random().nextLong(0, Long.MAX_VALUE);
         this.name = name;
     }
 

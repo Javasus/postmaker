@@ -1,10 +1,9 @@
 package org.nosulkora.model;
 
 import java.util.List;
+import java.util.Random;
 
 public class Post {
-
-    private static Long ID = 0L;
 
     private Long id;
 
@@ -15,7 +14,7 @@ public class Post {
     private List<Label> labels;
 
     public Post(String title, String content, List<Label> labels) {
-        this.id = ID++;
+        this.id = new Random().nextLong(0, Long.MAX_VALUE);
         this.title = title;
         this.content = content;
         this.labels = labels;

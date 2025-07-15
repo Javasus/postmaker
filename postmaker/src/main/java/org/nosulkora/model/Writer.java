@@ -1,10 +1,9 @@
 package org.nosulkora.model;
 
 import java.util.List;
+import java.util.Random;
 
 public class Writer {
-
-    private static Long ID = 0L;
 
     private Long id;
 
@@ -17,7 +16,7 @@ public class Writer {
     private Status status;
 
     public Writer(String firstName, String lastname, List<Post> posts, Status status) {
-        this.id = ID++;
+        this.id = new Random().nextLong(0, Long.MAX_VALUE);
         this.firstName = firstName;
         this.lastname = lastname;
         this.posts = posts;

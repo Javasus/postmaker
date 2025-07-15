@@ -23,7 +23,8 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
      * @param writer - Обьект пользователя Writer.
      * @return boolean
      */
-    public Boolean addWriter(Writer writer) {
+    @Override
+    public Boolean createWriter(Writer writer) {
         List<Writer> writers = getAllWriters();
         writers.add(writer);
 
@@ -43,18 +44,21 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
      * @param lastName  Фамилия
      * @return writer
      */
-    public Optional<Writer> getWriterByName(String firstname, String lastName) {
+    @Override
+    public Writer getWriterByName(String firstname, String lastName) {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
             Type userListType = new TypeToken<List<Writer>>() {
             }.getType();
             List<Writer> writers = gson.fromJson(fileReader, userListType);
-
-            return writers.stream()
+            Optional<Writer> first = writers.stream()
                     .filter(writer -> writer.getFirstName().equals(firstname))
                     .filter(writer -> writer.getLastname().equals(lastName)).findFirst();
 
+
+            return first.orElse(null);
+
         } catch (Exception e) {
-            return Optional.empty();
+            return null;
         }
     }
 
@@ -63,6 +67,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
      *
      * @return список пользователей
      */
+    @Override
     public List<Writer> getAllWriters() {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
             Type type = new TypeToken<List<Writer>>() {}.getType();
@@ -79,15 +84,16 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
      * @param id Идентификатор writer'а
      * @return writer
      */
-    public Optional<Writer> getWriterById(Long id) {
+    @Override
+    public Writer getWriterById(Long id) {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
             Type userListType = new TypeToken<List<Writer>>() {
             }.getType();
             List<Writer> writers = gson.fromJson(fileReader, userListType);
-
-            return writers.stream().filter(writer -> writer.getId().equals(id)).findFirst();
+            Optional<Writer> writer = writers.stream().filter(wr -> wr.getId().equals(id)).findFirst();
+            return writer.orElse(null);
         } catch (IOException e) {
-            return Optional.empty();
+            return null;
         }
     }
 }
