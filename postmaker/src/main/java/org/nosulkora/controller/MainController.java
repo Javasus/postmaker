@@ -1,95 +1,77 @@
 package org.nosulkora.controller;
 
-import org.nosulkora.model.Status;
-import org.nosulkora.model.Writer;
+import org.nosulkora.repository.LabelRepository;
+import org.nosulkora.repository.PostRepository;
 import org.nosulkora.repository.WriterRepository;
-import org.nosulkora.view.View;
+import org.nosulkora.view.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
-public class MainController implements Controller {
+public class MainController {
 
     private static final String YOU_ARE_WRONG = "Ты ввёл не верные данные. Пожалуйста следуй инструкциям.";
 
-    private WriterRepository writerRepository;
-    private View view;
 
-    public MainController(WriterRepository writerRepository, View view) {
-        this.writerRepository = writerRepository;
+    private final View view;
+    private final WriteController writeController;
+    private final PostController postController;
+    private final LableController lableController;
+
+    public MainController(
+            WriterRepository writerRepository,
+            PostRepository postRepository,
+            LabelRepository labelRepository,
+            View view
+    ) {
+        this.writeController = new WriteController(writerRepository, new WriterViewImpl());
+        this.postController = new PostController(postRepository, new PostViewImpl());
+        this.lableController = new LableController(labelRepository, new LabelViewImpl());
         this.view = view;
     }
 
     public void requestHandle(BufferedReader reader) throws IOException {
 
-        String[] commands = view.runStartView(reader);
+        String command = view.runStartView(reader);
+        String[] commands;
+        if (command.matches("[wpl]+ [crud]+")) {
+            commands = command.split(" ");
+        } else {
+            System.out.println(YOU_ARE_WRONG);
+            return;
+        }
 
-        if (commands != null) {
-            String commandFirst = commands[0];
-            String commandSecond = commands[1];
-            if (commandFirst.equals("w")) {
+        String commandFirst = commands[0];
+        String commandSecond = commands[1];
 
+        switch (commandFirst) {
+            case "w" -> {
                 switch (commandSecond) {
-                    case "c" -> createWriter(reader);
-                    case "r" -> readWriter(reader);
-                    case "u" -> updateWriter(reader);
-//                case "d":
-//                    deleteWriter(reader);
-//                    break;
+                    case "c" -> writeController.create(reader);
+                    case "r" -> writeController.read(reader);
+                    case "u" -> writeController.update(reader);
+                    case "d" -> writeController.delete(reader);
                     default -> System.out.println(YOU_ARE_WRONG);
                 }
             }
-
-        }
-    }
-
-    private void createWriter(BufferedReader reader) throws IOException {
-
-        String[] nameByView = view.getNameByView(reader);
-        if (nameByView != null) {
-            String firstName = nameByView[0];
-            String lastName = nameByView[1];
-            Writer writerByName = writerRepository.getWriterByName(firstName, lastName);
-            if (writerByName != null) {
-                view.createWriter(writerByName, true);
-            } else {
-                Writer writer = new Writer(firstName, lastName, new ArrayList<>(), Status.ACTIVE);
-                if (writerRepository.createWriter(writer)) {
-                    view.createWriter(writer, false);
-                } else {
-                    view.createWriter(null, false);
+            case "p" -> {
+                switch (commandSecond) {
+                    case "c" -> postController.create(reader);
+                    case "r" -> postController.read(reader);
+                    case "u" -> postController.update(reader);
+                    case "d" -> postController.delete(reader);
+                    default -> System.out.println(YOU_ARE_WRONG);
+                }
+            }
+            case "l" -> {
+                switch (commandSecond) {
+                    case "c" -> lableController.create(reader);
+                    case "r" -> lableController.read(reader);
+                    case "u" -> lableController.update(reader);
+                    case "d" -> lableController.delete(reader);
+                    default -> System.out.println(YOU_ARE_WRONG);
                 }
             }
         }
-    }
-
-    private void readWriter(BufferedReader reader) throws IOException {
-
-        String command = view.getCommandForWriter(reader);
-        if (command.equalsIgnoreCase("All")) {
-            List<Writer> allWriters = writerRepository.getAllWriters();
-            System.out.println("Список всех writer'ов:");
-            allWriters.forEach(writer -> view.readWriter(writer));
-        } else if (command.matches("\\d+")) {
-            Long id = Long.parseLong(command);
-            Writer writerById = writerRepository.getWriterById(id);
-            view.readWriter(writerById);
-        } else if (command.matches("[a-zA-Zа-яА-Я]+ [a-zA-Zа-яА-Я]+")) {
-            String[] names = command.split(" ");
-            String firstName = names[0];
-            String lastName = names[1];
-            Writer writerByName = writerRepository.getWriterByName(firstName, lastName);
-            view.readWriter(writerByName);
-        } else {
-            System.out.println(YOU_ARE_WRONG);
-        }
-    }
-
-    private void updateWriter(BufferedReader reader) {
-
-
     }
 }

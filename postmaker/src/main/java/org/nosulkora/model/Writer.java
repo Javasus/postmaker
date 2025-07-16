@@ -1,6 +1,7 @@
 package org.nosulkora.model;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 
 public class Writer {
@@ -72,5 +73,18 @@ public class Writer {
                 ", posts=" + posts +
                 ", status=" + status +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Writer writer = (Writer) o;
+        return Objects.equals(id, writer.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 }
