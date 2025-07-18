@@ -4,6 +4,9 @@ import org.nosulkora.repository.LabelRepository;
 import org.nosulkora.repository.PostRepository;
 import org.nosulkora.repository.WriterRepository;
 import org.nosulkora.view.*;
+import org.nosulkora.view.impl.LabelViewImpl;
+import org.nosulkora.view.impl.PostViewImpl;
+import org.nosulkora.view.impl.WriterViewImpl;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,7 +17,7 @@ public class MainController {
 
 
     private final View view;
-    private final WriteController writeController;
+    private final WriterController writeController;
     private final PostController postController;
     private final LableController lableController;
 
@@ -24,8 +27,8 @@ public class MainController {
             LabelRepository labelRepository,
             View view
     ) {
-        this.writeController = new WriteController(writerRepository, new WriterViewImpl());
-        this.postController = new PostController(postRepository, new PostViewImpl());
+        this.writeController = new WriterController(writerRepository, new WriterViewImpl());
+        this.postController = new PostController(postRepository, writerRepository, new PostViewImpl(), new WriterViewImpl());
         this.lableController = new LableController(labelRepository, new LabelViewImpl());
         this.view = view;
     }

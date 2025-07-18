@@ -1,9 +1,11 @@
-package org.nosulkora.repository;
+package org.nosulkora.repository.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.nosulkora.model.Post;
 import org.nosulkora.model.Status;
 import org.nosulkora.model.Writer;
+import org.nosulkora.repository.WriterRepository;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -11,18 +13,19 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class GsonWriterRepositoryImpl implements WriterRepository {
 
-    private static final String FILE_PATH = "writer.json";
+    private static final String FILE_PATH = "writers.json";
     Gson gson = new Gson();
 
     /**
-     * Добавляет нового writer в файл writer.json.
+     * Добавляет нового writer в файл writers.json.
      *
-     * @param writer - Обьект пользователя Writer.
+     * @param writer - Обьект пользователя Writer
      * @return boolean
      */
     @Override
@@ -33,13 +36,13 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
             gson.toJson(writers, fileWriter);
             return true;
         } catch (IOException e) {
-            System.out.println("Ошбка записи.");
+            System.out.println("Ошибка записи.");
             return false;
         }
     }
 
     /**
-     * Возвращает writer, если он уже существует в .writer.json
+     * Возвращает writer, если он уже существует в writers.json
      *
      * @param firstname Имя
      * @param lastName  Фамилия
@@ -60,7 +63,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     }
 
     /**
-     * Возвращает список всех пользователей из файла writer.json.
+     * Возвращает список всех пользователей из файла writers.json.
      *
      * @return список пользователей
      */
@@ -77,7 +80,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     }
 
     /**
-     * Возвращает writer по id из файла - writer.json.
+     * Возвращает writer по id из файла - writers.json.
      *
      * @param id Идентификатор writer'а
      * @return writer
@@ -96,13 +99,14 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     }
 
     /**
-     * Возвращает обновленного пользователья в файле - writer.json.
+     * Возвращает обновленного пользователья в файле - writers.json.
      *
      * @param id       id пользователя которого хотим обновить
      * @param name     имя которое хотим присовить пользователю
      * @param LastName фамилия которую хотим присвоить пользователю
      * @return writer
      */
+    @Override
     public Writer updateWriter(Long id, String name, String LastName) {
         List<Writer> allWriters = getAllWriters();
         allWriters.forEach(writer -> {
@@ -117,11 +121,12 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     }
 
     /**
-     * Возвращает удаленнного пользователя в файле writer.json.
+     * Возвращает удаленнного пользователя в файле writers.json.
      *
      * @param id id пользователя, которого хотим удалить
      * @return writer
      */
+    @Override
     public Writer deleteWriterById(Long id) {
         List<Writer> allWriters = getAllWriters();
         List<Writer> updatedWriters = allWriters.stream().peek(writer -> {
@@ -135,7 +140,61 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     }
 
     /**
-     * записывает в файл writer.json обновленную коллекцию пользователей.
+     * Возвращает пользователя с добавленным постом.
+     *
+     * @param writerId id пользователя
+     * @param post     пост
+     * @return Writer
+     */
+    @Override
+    public Writer updateWriterWithNewPost(Long writerId, Post post) {
+        List<Writer> allWriters = getAllWriters();
+        allWriters.forEach(writer -> {
+                    if (writer.getId().equals(writerId)) {
+                        List<Post> posts = writer.getPosts();
+                        posts.add(post);
+                        writer.setPosts(posts);
+                    }
+                }
+        );
+        return addWriters(allWriters) ?
+                allWriters.stream().filter(writer -> writer.getId().equals(writerId)).findFirst().orElse(null) :
+                null;
+    }
+
+    @Override
+    public Writer updatePostInWriter(Post updatePost) {
+        List<Writer> allWriters = getAllWriters();
+        Writer updateWriter = null;
+        for (Writer writer : allWriters) {
+            for (Post post : writer.getPosts()) {
+                if (post.getId().equals(updatePost.getId())) {
+                    post.setTitle(updatePost.getTitle());
+                    post.setContent(updatePost.getContent());
+                    if (updatePost.getStatus().equals(Status.DELETED)) {
+                        post.setStatus(updatePost.getStatus());
+                    }
+                    updateWriter = writer;
+                    break;
+                }
+            }
+            if (Objects.nonNull(updateWriter)) {
+                break;
+            }
+        }
+        return addWriters(allWriters) ? updateWriter : null;
+
+//         allWriters.stream()
+//                .filter(writer -> writer.getPosts().stream().anyMatch(p -> p.getId().equals(post.getId())))
+//                .peek(writer -> writer.getPosts().replaceAll(p -> p.getId().equals(post.getId()) ? post : p))
+//                .findFirst().orElse(null);
+//        return addWriters(allWriters) ?
+//                allWriters.stream().filter(writer -> writer.getId().equals(writerId)).findFirst().orElse(null) :
+//                null;
+    }
+
+    /**
+     * записывает в файл writers.json обновленную коллекцию пользователей.
      *
      * @param writers обновленная коллекция пользователей
      * @return boolean

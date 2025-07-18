@@ -13,11 +13,14 @@ public class Post {
 
     private List<Label> labels;
 
+    private Status status;
+
     public Post(String title, String content, List<Label> labels) {
         this.id = new Random().nextLong(0, Long.MAX_VALUE);
         this.title = title;
         this.content = content;
         this.labels = labels;
+        this.status = Status.ACTIVE;
     }
 
     public Long getId() {
@@ -52,13 +55,22 @@ public class Post {
         this.labels = labels;
     }
 
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
     @Override
     public String toString() {
-        return "POST{" +
+        return "Post{" +
                 "id=" + id +
                 ", title='" + title + '\'' +
                 ", content='" + content + '\'' +
                 ", labels=" + labels +
+                ", status=" + status +
                 '}';
     }
 }

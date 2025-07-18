@@ -11,14 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class WriteController implements Controller{
+public class WriterController implements Controller{
 
     private static final String YOU_ARE_WRONG = "Ты ввёл не верные данные. Пожалуйста следуй инструкциям.";
 
     private final WriterRepository writerRepository;
     private final WriterView writerView;
 
-    public WriteController(WriterRepository writerRepository, WriterView writerView) {
+    public WriterController(WriterRepository writerRepository, WriterView writerView) {
         this.writerRepository = writerRepository;
         this.writerView = writerView;
     }
@@ -34,13 +34,15 @@ public class WriteController implements Controller{
             if (writersByName != null && !writersByName.isEmpty()) {
                 writersByName.forEach(writer -> writerView.createWriter(writer, true));
             } else {
-                Writer writer = new Writer(firstName, lastName, new ArrayList<>(), Status.ACTIVE);
+                Writer writer = new Writer(firstName, lastName, new ArrayList<>());
                 if (writerRepository.createWriter(writer)) {
                     writerView.createWriter(writer, false);
                 } else {
                     writerView.createWriter(null, false);
                 }
             }
+        } else {
+            System.out.println(YOU_ARE_WRONG);
         }
     }
 
@@ -50,7 +52,6 @@ public class WriteController implements Controller{
         String command =writerView.getCommandForWriter(reader);
         if (command.equalsIgnoreCase("All")) {
             List<Writer> allWriters = writerRepository.getAllWriters();
-            System.out.println("Список всех writer'ов:");
             allWriters.forEach(writerView::showWriter);
         } else if (command.matches("\\d+")) {
             Long id = Long.parseLong(command);
@@ -69,7 +70,7 @@ public class WriteController implements Controller{
 
     @Override
     public void update(BufferedReader reader) throws IOException {
-        String command =writerView.updateWriter(reader);
+        String command = writerView.updateWriter(reader);
         if (command.matches("\\d+")) {
             Long id = Long.parseLong(command);
             Writer writerById = writerRepository.getWriterById(id);
@@ -107,6 +108,8 @@ public class WriteController implements Controller{
                     System.out.println(YOU_ARE_WRONG);
                 }
             }
+        } else {
+            System.out.println(YOU_ARE_WRONG);
         }
     }
 }

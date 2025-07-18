@@ -1,9 +1,11 @@
-package org.nosulkora.view;
+package org.nosulkora.view.impl;
 
 import org.nosulkora.model.Writer;
+import org.nosulkora.view.WriterView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Objects;
 
 public class WriterViewImpl implements WriterView {
 
