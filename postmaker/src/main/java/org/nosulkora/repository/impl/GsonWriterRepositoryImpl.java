@@ -22,12 +22,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     private static final String FILE_PATH = "writers.json";
     Gson gson = new Gson();
 
-    /**
-     * Добавляет нового writer в файл writers.json.
-     *
-     * @param writer - Обьект пользователя Writer
-     * @return boolean
-     */
     @Override
     public Boolean createWriter(Writer writer) {
         List<Writer> writers = getAllWriters();
@@ -41,13 +35,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
         }
     }
 
-    /**
-     * Возвращает writer, если он уже существует в writers.json
-     *
-     * @param firstname Имя
-     * @param lastName  Фамилия
-     * @return writer
-     */
     @Override
     public List<Writer> getWriterByName(String firstname, String lastName) {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
@@ -62,11 +49,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
         }
     }
 
-    /**
-     * Возвращает список всех пользователей из файла writers.json.
-     *
-     * @return список пользователей
-     */
     @Override
     public List<Writer> getAllWriters() {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
@@ -79,12 +61,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
         }
     }
 
-    /**
-     * Возвращает writer по id из файла - writers.json.
-     *
-     * @param id Идентификатор writer'а
-     * @return writer
-     */
     @Override
     public Writer getWriterById(Long id) {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
@@ -98,14 +74,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
         }
     }
 
-    /**
-     * Возвращает обновленного пользователья в файле - writers.json.
-     *
-     * @param id       id пользователя которого хотим обновить
-     * @param name     имя которое хотим присовить пользователю
-     * @param LastName фамилия которую хотим присвоить пользователю
-     * @return writer
-     */
     @Override
     public Writer updateWriter(Long id, String name, String LastName) {
         List<Writer> allWriters = getAllWriters();
@@ -120,12 +88,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
                 null;
     }
 
-    /**
-     * Возвращает удаленнного пользователя в файле writers.json.
-     *
-     * @param id id пользователя, которого хотим удалить
-     * @return writer
-     */
     @Override
     public Writer deleteWriterById(Long id) {
         List<Writer> allWriters = getAllWriters();
@@ -139,13 +101,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
                 null;
     }
 
-    /**
-     * Возвращает пользователя с добавленным постом.
-     *
-     * @param writerId id пользователя
-     * @param post     пост
-     * @return Writer
-     */
     @Override
     public Writer updateWriterWithNewPost(Long writerId, Post post) {
         List<Writer> allWriters = getAllWriters();
@@ -171,6 +126,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
                 if (post.getId().equals(updatePost.getId())) {
                     post.setTitle(updatePost.getTitle());
                     post.setContent(updatePost.getContent());
+                    post.setLabels(updatePost.getLabels());
                     if (updatePost.getStatus().equals(Status.DELETED)) {
                         post.setStatus(updatePost.getStatus());
                     }
@@ -183,14 +139,6 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
             }
         }
         return addWriters(allWriters) ? updateWriter : null;
-
-//         allWriters.stream()
-//                .filter(writer -> writer.getPosts().stream().anyMatch(p -> p.getId().equals(post.getId())))
-//                .peek(writer -> writer.getPosts().replaceAll(p -> p.getId().equals(post.getId()) ? post : p))
-//                .findFirst().orElse(null);
-//        return addWriters(allWriters) ?
-//                allWriters.stream().filter(writer -> writer.getId().equals(writerId)).findFirst().orElse(null) :
-//                null;
     }
 
     /**

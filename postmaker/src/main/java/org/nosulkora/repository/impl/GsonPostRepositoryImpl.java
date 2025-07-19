@@ -2,8 +2,8 @@ package org.nosulkora.repository.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.nosulkora.model.Label;
 import org.nosulkora.model.Post;
-import org.nosulkora.model.Status;
 import org.nosulkora.repository.PostRepository;
 
 import java.io.FileReader;
@@ -12,16 +12,16 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class GsonPostRepositoryImpl implements PostRepository {
 
     private static final String FILE_PATH = "posts.json";
-
     Gson gson = new Gson();
 
     @Override
-    public Boolean createPost(Long writerId, Post post) {
+    public Boolean createPost(Post post) {
         List<Post> postsFromJson = getAllPosts();
         postsFromJson.add(post);
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
@@ -67,6 +67,8 @@ public class GsonPostRepositoryImpl implements PostRepository {
                     if (post.getId().equals(updatePostId)) {
                         post.setTitle(updatePost.getTitle());
                         post.setContent(updatePost.getContent());
+                        post.setLabels(updatePost.getLabels());
+                        post.setStatus(updatePost.getStatus());
                     }
                 });
         return addPosts(allPosts) ?
@@ -75,16 +77,39 @@ public class GsonPostRepositoryImpl implements PostRepository {
     }
 
     @Override
-    public Post deletePostById(Long id) {
+    public Post updatePostWithNewLabel(Long postId, Label label) {
         List<Post> allPosts = getAllPosts();
-        allPosts.forEach(post -> {
-            if (post.getId().equals(id)) {
-                post.setStatus(Status.DELETED);
+        Post updatePost = null;
+        for (Post post : allPosts) {
+            if (post.getId().equals(postId)) {
+                List<Label> labels = post.getLabels();
+                labels.add(label);
+                post.setLabels(labels);
+                updatePost = post;
+                break;
             }
-        });
-        return addPosts(allPosts) ?
-                allPosts.stream().filter(post -> post.getId().equals(id)).findFirst().orElse(null) :
-                null;
+        }
+        return addPosts(allPosts) ? updatePost : null;
+    }
+
+    @Override
+    public Post updateLabelInPost(Label label) {
+        List<Post> allPosFromJson = getAllPosts();
+        Post updatePost = null;
+        for (Post post : allPosFromJson) {
+            for (Label lbl : post.getLabels()) {
+                if (lbl.getId().equals(label.getId())) {
+                    lbl.setName(label.getName());
+                    lbl.setStatus(label.getStatus());
+                    updatePost = post;
+                    break;
+                }
+            }
+            if (Objects.nonNull(updatePost)) {
+                break;
+            }
+        }
+        return addPosts(allPosFromJson) ? updatePost : null;
     }
 
     /**
@@ -95,7 +120,7 @@ public class GsonPostRepositoryImpl implements PostRepository {
      */
     private boolean addPosts(List<Post> posts) {
         try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
-            gson.toJson(posts,fileWriter);
+            gson.toJson(posts, fileWriter);
             return true;
         } catch (IOException e) {
             System.out.println("Ошбка записи.");

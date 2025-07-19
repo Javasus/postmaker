@@ -3,7 +3,7 @@ package org.nosulkora.controller;
 import org.nosulkora.repository.LabelRepository;
 import org.nosulkora.repository.PostRepository;
 import org.nosulkora.repository.WriterRepository;
-import org.nosulkora.view.*;
+import org.nosulkora.view.View;
 import org.nosulkora.view.impl.LabelViewImpl;
 import org.nosulkora.view.impl.PostViewImpl;
 import org.nosulkora.view.impl.WriterViewImpl;
@@ -27,9 +27,24 @@ public class MainController {
             LabelRepository labelRepository,
             View view
     ) {
-        this.writeController = new WriterController(writerRepository, new WriterViewImpl());
-        this.postController = new PostController(postRepository, writerRepository, new PostViewImpl(), new WriterViewImpl());
-        this.lableController = new LableController(labelRepository, new LabelViewImpl());
+        this.writeController = new WriterController(
+                writerRepository,
+                new WriterViewImpl()
+        );
+        this.postController = new PostController(
+                postRepository,
+                new PostViewImpl(),
+                writerRepository,
+                new WriterViewImpl()
+        );
+        this.lableController = new LableController(
+                writerRepository,
+                new WriterViewImpl(),
+                postRepository,
+                new PostViewImpl(),
+                labelRepository,
+                new LabelViewImpl()
+        );
         this.view = view;
     }
 

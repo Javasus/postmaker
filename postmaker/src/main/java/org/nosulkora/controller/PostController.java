@@ -19,19 +19,19 @@ public class PostController implements Controller {
     private static final String YOU_ARE_WRONG = "Ты ввёл не верные данные. Пожалуйста следуй инструкциям.";
 
     private final PostRepository postRepository;
-    private final WriterRepository writerRepository;
     private final PostView postView;
+    private final WriterRepository writerRepository;
     private final WriterView writerView;
 
     public PostController(
             PostRepository postRepository,
-            WriterRepository writerRepository,
             PostView postView,
+            WriterRepository writerRepository,
             WriterView writerView
     ) {
         this.postRepository = postRepository;
-        this.writerRepository = writerRepository;
         this.postView = postView;
+        this.writerRepository = writerRepository;
         this.writerView = writerView;
     }
 
@@ -39,15 +39,24 @@ public class PostController implements Controller {
     public void create(BufferedReader reader) throws IOException {
 
         String[] postByView = postView.getPostByView(reader, "Введи id writer'а от которого хочешь запостить.");
-        if (postByView != null && postByView.length == 3 && postByView[2].matches("\\d+")) {
+        if (postByView != null
+                && postByView.length == 3
+                && postByView[2].matches("\\d+")
+                && !postByView[0].isEmpty()
+                && !postByView[1].isEmpty()
+        ) {
             String title = postByView[0];
             String content = postByView[1];
             Long writerId = Long.parseLong(postByView[2]);
             Post post = new Post(title, content, new ArrayList<>());
-            if (postRepository.createPost(writerId, post)) {
+            if (postRepository.createPost(post)) {
                 postView.showPost(post);
                 Writer writer = writerRepository.updateWriterWithNewPost(writerId, post);
-                writerView.showWriter(writer);
+                if (Objects.nonNull(writer)) {
+                    writerView.showWriter(writer);
+                } else {
+                    System.out.println(YOU_ARE_WRONG);
+                }
             }
         } else {
             System.out.println(YOU_ARE_WRONG);
@@ -56,6 +65,7 @@ public class PostController implements Controller {
 
     @Override
     public void read(BufferedReader reader) throws IOException {
+
         String command = postView.getCommandForPost(reader);
         if (command.equalsIgnoreCase("All")) {
             List<Post> allPosts = postRepository.getAllPosts();
@@ -71,6 +81,7 @@ public class PostController implements Controller {
 
     @Override
     public void update(BufferedReader reader) throws IOException {
+
         String[] updatePostData = postView.getPostByView(
                 reader,
                 "Введи id post'а который хочешь изменить."
@@ -81,13 +92,19 @@ public class PostController implements Controller {
             Long postId = Long.parseLong(updatePostData[2]);
             Post post = postRepository.getPostById(postId);
             if (Objects.nonNull(post)) {
+//                Если мы нашли пост с таким id, меняем его данные и обновляем его.
                 post.setTitle(title);
                 post.setContent(content);
                 Post updatePost = postRepository.updatePost(post);
                 if (Objects.nonNull(updatePost)) {
+//                    Если пост обновился отправляем его, что бы он обновился у писателя.
                     postView.showPost(updatePost);
                     Writer writer = writerRepository.updatePostInWriter(updatePost);
-                    writerView.showWriter(writer);
+                    if (Objects.nonNull(writer)) {
+                        writerView.showWriter(writer);
+                    } else {
+                        System.out.println(YOU_ARE_WRONG);
+                    }
                 }
             } else {
                 System.out.println(YOU_ARE_WRONG);
@@ -97,13 +114,17 @@ public class PostController implements Controller {
 
     @Override
     public void delete(BufferedReader reader) throws IOException {
-        String command = postView.updatePost(reader);
+
+        String command = postView.deletePost(reader);
         if (command.matches("\\d+")) {
             Long id = Long.parseLong(command);
             Post post = postRepository.getPostById(id);
             if (Objects.nonNull(post)) {
-                Post deletedPost = postRepository.deletePostById(id);
+//                Если мы нашли пост с таким id, меняем его статус Status.DELETED и обновляем его.
+                post.setStatus(Status.DELETED);
+                Post deletedPost = postRepository.updatePost(post);
                 if (Objects.nonNull(deletedPost)) {
+//                    Если пост обновился отправлем его, что бы он обновился у писателя.
                     postView.showPost(deletedPost);
                     Writer writer = writerRepository.updatePostInWriter(deletedPost);
                     if (Objects.nonNull(writer)) {
@@ -116,6 +137,5 @@ public class PostController implements Controller {
         } else {
             System.out.println(YOU_ARE_WRONG);
         }
-
     }
 }

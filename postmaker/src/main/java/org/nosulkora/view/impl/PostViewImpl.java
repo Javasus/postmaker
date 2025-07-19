@@ -9,7 +9,7 @@ import java.io.IOException;
 public class PostViewImpl implements PostView {
 
     @Override
-    public String[] getPostByView (BufferedReader reader, String message) throws IOException {
+    public String[] getPostByView(BufferedReader reader, String message) throws IOException {
         String[] post = new String[3];
         if (!message.isEmpty()) {
             System.out.println(message);
@@ -22,7 +22,6 @@ public class PostViewImpl implements PostView {
         System.out.println("Введи контент.");
         String content = reader.readLine().trim();
         post[1] = content;
-
         return post;
     }
 
@@ -35,17 +34,17 @@ public class PostViewImpl implements PostView {
                 """);
         return reader.readLine().trim();
     }
+
     @Override
     public void showPost(Post post) {
         System.out.println(post != null ? post.toString() : "Writer не найден.");
     }
 
     @Override
-    public String updatePost(BufferedReader reader) throws IOException {
+    public String deletePost(BufferedReader reader) throws IOException {
         System.out.println("""
-                Для редактирования данных поста введи id - post'а.
+                Для удаления поста введи его id.
                 """);
         return reader.readLine().trim();
     }
-
 }

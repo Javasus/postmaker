@@ -5,7 +5,7 @@ import org.nosulkora.model.Writer;
 import java.io.BufferedReader;
 import java.io.IOException;
 
-public interface WriterView extends GenericView<Writer>{
+public interface WriterView extends GenericView<Writer> {
 
     String[] getNameByView(BufferedReader reader) throws IOException;
 
