@@ -1,2 +1,0 @@
-# postmaker
-CRUD application.
