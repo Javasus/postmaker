@@ -16,12 +16,7 @@ public class Writer {
 
     private Status status;
 
-    public Writer(String firstName, String lastname, List<Post> posts) {
-        this.id = new Random().nextLong(0, Long.MAX_VALUE);
-        this.firstName = firstName;
-        this.lastname = lastname;
-        this.posts = posts;
-        this.status = Status.ACTIVE;
+    public Writer() {
     }
 
     public Long getId() {

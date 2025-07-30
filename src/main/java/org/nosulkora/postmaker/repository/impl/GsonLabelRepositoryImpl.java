@@ -3,6 +3,7 @@ package org.nosulkora.postmaker.repository.impl;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.nosulkora.postmaker.model.Label;
+import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.repository.LabelRepository;
 
 import java.io.FileReader;
@@ -11,28 +12,69 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class GsonLabelRepositoryImpl implements LabelRepository {
 
-    private static final String FILE_PATH = "labels.json";
+    private static final String FILE_PATH = "src/main/resources/labels.json";
     private final Gson GSON = new Gson();
 
     @Override
-    public Boolean createLabel(Label label) {
-        List<Label> allLabelsFromJson = getAllLabels();
-        allLabelsFromJson.add(label);
-        try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
-            GSON.toJson(allLabelsFromJson, fileWriter);
-            return true;
-        } catch (IOException e) {
-            System.out.println("Ошибка записи.");
-            return false;
-        }
+    public Label save(Label label) {
+        List<Label> existingLabels = getAllLabelsInternal();
+        long id = generateId(existingLabels);
+        label.setId(id);
+        existingLabels.add(label);
+        writeLabelsToFile(existingLabels);
+        return label;
     }
 
     @Override
-    public List<Label> getAllLabels() {
+    public Label getById(Long id) {
+        return getAllLabelsInternal().stream()
+                .filter(label -> label.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
+    public Label update(Label label) {
+        List<Label> updatedLabels = getAllLabelsInternal().stream()
+                .map(currentLabel -> {
+                    if (currentLabel.getId().equals(label.getId())) {
+                        return label;
+                    }
+                    return currentLabel;
+                }).toList();
+        writeLabelsToFile(updatedLabels);
+        return label;
+    }
+
+    @Override
+    public List<Label> getAll() {
+        return getAllLabelsInternal();
+    }
+
+    @Override
+    public void deleteById(Long id) {
+        List<Label> updatedLabels = getAllLabelsInternal().stream()
+                .map(currentLabel -> {
+                    if (currentLabel.getId().equals(id)) {
+                        currentLabel.setStatus(Status.DELETED);
+                    }
+                    return currentLabel;
+                }).toList();
+        writeLabelsToFile(updatedLabels);
+    }
+
+    private void writeLabelsToFile(List<Label> labels) {
+        try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
+            GSON.toJson(labels, fileWriter);
+        } catch (IOException e) {
+            System.out.println("Ошибка записи.");
+        }
+    }
+
+    private List<Label> getAllLabelsInternal() {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
             Type type = new TypeToken<List<Label>>() {
             }.getType();
@@ -43,47 +85,9 @@ public class GsonLabelRepositoryImpl implements LabelRepository {
         }
     }
 
-    @Override
-    public Label getLabelById(Long id) {
-        try (FileReader fileReader = new FileReader(FILE_PATH)) {
-            Type userListType = new TypeToken<List<Label>>() {
-            }.getType();
-            List<Label> labels = GSON.fromJson(fileReader, userListType);
-            Optional<Label> label = labels.stream().filter(lbl -> lbl.getId().equals(id)).findFirst();
-            return label.orElse(null);
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    @Override
-    public Label updateLabel(Label label) {
-        List<Label> allLabelsFromJson = getAllLabels();
-        Label updateLabel = null;
-        for (Label lbl : allLabelsFromJson) {
-            if (lbl.getId().equals(label.getId())) {
-                lbl.setName(label.getName());
-                lbl.setStatus(label.getStatus());
-                updateLabel = lbl;
-                break;
-            }
-        }
-        return addLabels(allLabelsFromJson) ? updateLabel : null;
-    }
-
-    /**
-     * записывает в файл labels.json обновленную коллекцию постов.
-     *
-     * @param labels обновленная коллекция постов
-     * @return boolean
-     */
-    private boolean addLabels(List<Label> labels) {
-        try (FileWriter fileWriter = new FileWriter(FILE_PATH)) {
-            GSON.toJson(labels, fileWriter);
-            return true;
-        } catch (IOException e) {
-            System.out.println("Ошбка записи.");
-            return false;
-        }
+    private Long generateId(List<Label> labels) {
+        return labels.stream()
+                .mapToLong(Label::getId)
+                .max().orElse(0L) + 1;
     }
 }

@@ -1,7 +1,5 @@
 package org.nosulkora.postmaker.model;
 
-import java.util.Random;
-
 public class Label {
 
     private Long id;
@@ -10,10 +8,7 @@ public class Label {
 
     private Status status;
 
-    public Label(String name) {
-        this.id = new Random().nextLong(0, Long.MAX_VALUE);
-        this.name = name;
-        this.status = Status.ACTIVE;
+    public Label() {
     }
 
     public Long getId() {

@@ -15,12 +15,7 @@ public class Post {
 
     private Status status;
 
-    public Post(String title, String content, List<Label> labels) {
-        this.id = new Random().nextLong(0, Long.MAX_VALUE);
-        this.title = title;
-        this.content = content;
-        this.labels = labels;
-        this.status = Status.ACTIVE;
+    public Post() {
     }
 
     public Long getId() {
