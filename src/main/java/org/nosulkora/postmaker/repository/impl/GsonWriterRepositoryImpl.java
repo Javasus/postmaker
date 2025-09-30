@@ -11,15 +11,12 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class GsonWriterRepositoryImpl implements WriterRepository {
 
-    private static final String FILE_PATH = "src/main/resources/writers.json";
+    private final String FILE_PATH = "src/main/resources/writers.json";
     private final Gson GSON = new Gson();
 
     @Override
@@ -62,11 +59,10 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     @Override
     public void deleteById(Long id) {
         List<Writer> writers = getAllWritersInternal().stream()
-                .map(currentWriter -> {
+                .peek(currentWriter -> {
                     if (currentWriter.getId().equals(id)) {
                         currentWriter.setStatus(Status.DELETED);
                     }
-                    return currentWriter;
                 })
                 .toList();
         writeWriterToFile(writers);
@@ -87,7 +83,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
             List<Writer> existing = GSON.fromJson(fileReader, type);
             return existing != null ? existing : new ArrayList<>();
         } catch (IOException e) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
     }
 

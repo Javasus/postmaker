@@ -23,9 +23,9 @@ public class MainView {
 
     public MainView() {
         scanner = new Scanner(System.in);
-        labelView = new LabelView();
-        postView = new PostView();
-        writerView = new WriterView();
+        labelView = new LabelView(scanner);
+        postView = new PostView(scanner);
+        writerView = new WriterView(scanner);
     }
 
     public MainView(LabelView labelView, PostView postView, WriterView writerView, Scanner scanner) {

@@ -11,11 +11,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class GsonLabelRepositoryImpl implements LabelRepository {
 
-    private static final String FILE_PATH = "src/main/resources/labels.json";
+    private final String FILE_PATH = "src/main/resources/labels.json";
     private final Gson GSON = new Gson();
 
     @Override
@@ -57,11 +58,10 @@ public class GsonLabelRepositoryImpl implements LabelRepository {
     @Override
     public void deleteById(Long id) {
         List<Label> updatedLabels = getAllLabelsInternal().stream()
-                .map(currentLabel -> {
+                .peek(currentLabel -> {
                     if (currentLabel.getId().equals(id)) {
                         currentLabel.setStatus(Status.DELETED);
                     }
-                    return currentLabel;
                 }).toList();
         writeLabelsToFile(updatedLabels);
     }
@@ -81,7 +81,7 @@ public class GsonLabelRepositoryImpl implements LabelRepository {
             List<Label> existing = GSON.fromJson(fileReader, type);
             return existing != null ? existing : new ArrayList<>();
         } catch (IOException e) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
     }
 

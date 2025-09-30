@@ -16,6 +16,11 @@ public class LabelView {
         labelController = new LabelController();
     }
 
+    public LabelView(Scanner scanner) {
+        this.scanner = scanner;
+        labelController = new LabelController();
+    }
+
     public LabelView(Scanner scanner, LabelController labelController) {
         this.scanner = scanner;
         this.labelController = labelController;

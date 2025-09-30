@@ -11,14 +11,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public class GsonPostRepositoryImpl implements PostRepository {
 
-    private static final String FILE_PATH = "src/main/resources/posts.json";
+    private final String FILE_PATH = "src/main/resources/posts.json";
     private final Gson GSON = new Gson();
 
     @Override
@@ -60,11 +57,10 @@ public class GsonPostRepositoryImpl implements PostRepository {
     @Override
     public void deleteById(Long id) {
         List<Post> updatedPosts = getAllPostsInternal().stream()
-                .map(currentPost -> {
+                .peek(currentPost -> {
                     if (currentPost.getId().equals(id)) {
                         currentPost.setStatus(Status.DELETED);
                     }
-                    return currentPost;
                 })
                 .toList();
         writePostsToFile(updatedPosts);
@@ -85,7 +81,7 @@ public class GsonPostRepositoryImpl implements PostRepository {
             List<Post> existing = GSON.fromJson(fileReader, type);
             return existing != null ? existing : new ArrayList<>();
         } catch (IOException e) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
     }
 

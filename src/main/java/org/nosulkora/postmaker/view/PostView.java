@@ -5,10 +5,9 @@ import org.nosulkora.postmaker.controller.PostController;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class PostView {
@@ -23,6 +22,12 @@ public class PostView {
         this.labelController = labelController;
     }
 
+    public PostView(Scanner scanner) {
+        this.scanner = scanner;
+        postController = new PostController();
+        labelController = new LabelController();
+    }
+
     public PostView() {
         scanner = new Scanner(System.in);
         postController = new PostController();
@@ -34,14 +39,8 @@ public class PostView {
         String title = scanner.nextLine();
         System.out.println("Enter post content: ");
         String content = scanner.nextLine();
-        System.out.println("Введи один или несколько label. В конце введи пустую строку.");
-        List<Label> labels = new ArrayList<>();
-        while (scanner.hasNextLine()) {
-            String name = scanner.nextLine();
-            if (name.trim().isEmpty()) break;
-            Label label = labelController.createlabel(name);
-            labels.add(label);
-        }
+        System.out.println(labelController.getAllLabels());
+        List<Label> labels = addLabels();
         Post post = postController.createPost(title, content, labels);
         System.out.println("post create : " + post);
     }
@@ -65,14 +64,8 @@ public class PostView {
         String title = scanner.nextLine();
         System.out.println("Enter new post content: ");
         String content = scanner.nextLine();
-        System.out.println("Введи один или несколько label. В конце введи пустую строку.");
-        List<Label> labels = new ArrayList<>();
-        while (scanner.hasNextLine()) {
-            String name = scanner.nextLine();
-            if (name.trim().isEmpty()) break;
-            Label label = labelController.createlabel(name);
-            labels.add(label);
-        }
+        labelController.getAllLabels();
+        List<Label> labels = addLabels();
         Post post = postController.updatePost(id, title, content, labels);
         System.out.println("post update : " + post);
     }
@@ -82,5 +75,27 @@ public class PostView {
         Long id = Long.parseLong(scanner.nextLine());
         postController.deletePost(id);
         System.out.println("Post is deleted.");
+    }
+
+    private List<Label> addLabels() {
+        System.out.println("Введи один или несколько label или введи id существующего из списка. В конце введи пустую строку.");
+        List<Label> result = new ArrayList<>();
+        while (scanner.hasNextLine()) {
+            String text = scanner.nextLine();
+            if (text.trim().isEmpty()) break;
+
+            Label label = null;
+            if (text.trim().matches("[0-9.]*")) {
+                Long id = Long.parseLong(text);
+                label = labelController.getLabelById(id);
+            }
+
+            if (Objects.isNull(label)) {
+                label = labelController.createlabel(text);
+            }
+
+            result.add(label);
+        }
+        return result;
     }
 }

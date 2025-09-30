@@ -9,6 +9,7 @@ import org.nosulkora.postmaker.model.Writer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class WriterView {
@@ -20,6 +21,13 @@ public class WriterView {
 
     public WriterView() {
         scanner = new Scanner(System.in);
+        writerController = new WriterController();
+        postController = new PostController();
+        labelController = new LabelController();
+    }
+
+    public WriterView(Scanner scanner) {
+        this.scanner = scanner;
         writerController = new WriterController();
         postController = new PostController();
         labelController = new LabelController();
@@ -42,26 +50,7 @@ public class WriterView {
         String firstName = scanner.nextLine();
         System.out.println("Enter writer lastName: ");
         String lastName = scanner.nextLine();
-        System.out.println("Введи один или несколько post. В конце введи пустую строку.");
-        List<Post> posts = new ArrayList<>();
-        System.out.println("Enter post title: ");
-        while (scanner.hasNextLine()) {
-            String title = scanner.nextLine();
-            if (title.trim().isEmpty()) break;
-            System.out.println("Enter post content: ");
-            String content = scanner.nextLine();
-            System.out.println("Введи один или несколько label. В конце введи пустую строку.");
-            List<Label> labels = new ArrayList<>();
-            while (scanner.hasNextLine()) {
-                String name = scanner.nextLine();
-                if (name.trim().isEmpty()) break;
-                Label label = labelController.createlabel(name);
-                labels.add(label);
-            }
-            Post post = postController.createPost(title, content, labels);
-            posts.add(post);
-            System.out.println("Enter post title: ");
-        }
+        List<Post> posts = addPosts();
         Writer writer = writerController.createWriter(firstName, lastName, posts);
         System.out.println("writer create: " + writer);
     }
@@ -85,26 +74,7 @@ public class WriterView {
         String firstName = scanner.nextLine();
         System.out.println("Enter writer lastName: ");
         String lastName = scanner.nextLine();
-        System.out.println("Введи один или несколько post. В конце введи пустую строку.");
-        List<Post> posts = new ArrayList<>();
-        System.out.println("Enter post title: ");
-        while (scanner.hasNextLine()) {
-            String title = scanner.nextLine();
-            if (title.trim().isEmpty()) break;
-            System.out.println("Enter post content: ");
-            String content = scanner.nextLine();
-            System.out.println("Введи один или несколько label. В конце введи пустую строку.");
-            List<Label> labels = new ArrayList<>();
-            while (scanner.hasNextLine()) {
-                String name = scanner.nextLine();
-                if (name.trim().isEmpty()) break;
-                Label label = labelController.createlabel(name);
-                labels.add(label);
-            }
-            Post post = postController.createPost(title, content, labels);
-            posts.add(post);
-            System.out.println("Enter post title: ");
-        }
+        List<Post> posts = addPosts();
         Writer writer = writerController.updateWriter(id, firstName, lastName, posts);
         System.out.println("writer update : " + writer);
     }
@@ -114,5 +84,46 @@ public class WriterView {
         Long id = Long.parseLong(scanner.nextLine());
         writerController.deleteWriter(id);
         System.out.println("Writer is delete");
+    }
+
+    private List<Post> addPosts() {
+        System.out.println("Введи один или несколько post. В конце введи пустую строку.");
+        List<Post> posts = new ArrayList<>();
+        System.out.println("Enter post title: ");
+        while (scanner.hasNextLine()) {
+            String title = scanner.nextLine();
+            if (title.trim().isEmpty()) break;
+            System.out.println("Enter post content: ");
+            String content = scanner.nextLine();
+            List<Label> labels = addLabels();
+            Post post = postController.createPost(title, content, labels);
+            posts.add(post);
+            System.out.println("Enter post title: ");
+        }
+        return posts;
+    }
+
+    private List<Label> addLabels() {
+        System.out.println(
+                "Введи один или несколько label или введи id существующего из списка. " +
+                        "В конце введи пустую строку.");
+        List<Label> result = new ArrayList<>();
+        while (scanner.hasNextLine()) {
+            String text = scanner.nextLine();
+            if (text.trim().isEmpty()) break;
+
+            Label label = null;
+            if (text.trim().matches("[0-9.]*")) {
+                Long id = Long.parseLong(text);
+                label = labelController.getLabelById(id);
+            }
+
+            if (Objects.isNull(label)) {
+                label = labelController.createlabel(text);
+            }
+
+            result.add(label);
+        }
+        return result;
     }
 }
