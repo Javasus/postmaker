@@ -1,5 +1,6 @@
 package org.nosulkora.postmaker.view;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class MainView {
@@ -11,9 +12,8 @@ public class MainView {
     private final WriterView writerView;
     private final Scanner scanner;
 
-    private final String choiceCommand = """
-            
-            выбери действие:
+    private final String choiceCommand = """       
+            Выбери действие:
                      Введи - 'c' , если хочешь добавить сущность.
                      Введи - 'r' , если хочешь посмотреть сущность.
                      Введи - 'ra' , если хочешь посмотреть все сущности.
@@ -22,10 +22,10 @@ public class MainView {
             """;
 
     public MainView() {
-        scanner = new Scanner(System.in);
-        labelView = new LabelView(scanner);
-        postView = new PostView(scanner);
-        writerView = new WriterView(scanner);
+        scanner = new Scanner(System.in, StandardCharsets.UTF_8);
+        labelView = new LabelView();
+        postView = new PostView();
+        writerView = new WriterView();
     }
 
     public MainView(LabelView labelView, PostView postView, WriterView writerView, Scanner scanner) {
@@ -38,13 +38,27 @@ public class MainView {
     public void start() {
         while (true) {
             System.out.println("""  
-                            
                     Выбери, с какой сущностью будешь работать:
                         Введи - 'w' , если хочешь работать с Writer.
                         Введи - 'p' , если хочешь работать с Post.
                         Введи - 'l' , если хочешь работать с label.
+                        Введи - 'exit' , чтобы выйти.
                     """);
-            String command = scanner.nextLine();
+
+            System.out.print("Ваш выбор: ");
+
+            if (!scanner.hasNextLine()) {
+                System.out.println("Нет ввода, завершение программы");
+                break;
+            }
+
+            String command = scanner.nextLine().trim();
+
+            if ("exit".equalsIgnoreCase(command)) {
+                System.out.println("Выход из программы");
+                break;
+            }
+
             switch (command) {
                 case "w" -> writerMenu();
                 case "p" -> postMenu();
@@ -52,11 +66,16 @@ public class MainView {
                 default -> System.out.println(YOU_ARE_WRONG);
             }
         }
+        scanner.close();
     }
 
     private void labelMenu() {
         System.out.println(choiceCommand);
-        String command = scanner.nextLine();
+        System.out.print("Ваш выбор: ");
+
+        if (!scanner.hasNextLine()) return;
+        String command = scanner.nextLine().trim();
+
         switch (command) {
             case "c" -> labelView.createLabel();
             case "r" -> labelView.getLabelById();
@@ -69,7 +88,11 @@ public class MainView {
 
     private void postMenu() {
         System.out.println(choiceCommand);
-        String command = scanner.nextLine();
+        System.out.print("Ваш выбор: ");
+
+        if (!scanner.hasNextLine()) return;
+        String command = scanner.nextLine().trim();
+
         switch (command) {
             case "c" -> postView.createPost();
             case "r" -> postView.getPostById();
@@ -82,12 +105,16 @@ public class MainView {
 
     private void writerMenu() {
         System.out.println(choiceCommand);
-        String command = scanner.nextLine();
+        System.out.print("Ваш выбор: ");
+
+        if (!scanner.hasNextLine()) return;
+        String command = scanner.nextLine().trim();
+
         switch (command) {
             case "c" -> writerView.createWriter();
             case "r" -> writerView.getWriterById();
             case "ra" -> writerView.getAllWriters();
-            case "u" ->  writerView.updateWriter();
+            case "u" -> writerView.updateWriter();
             case "d" -> writerView.deleteWriter();
             default -> System.out.println(YOU_ARE_WRONG);
         }
