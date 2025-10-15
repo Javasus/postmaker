@@ -2,8 +2,13 @@ package org.nosulkora.postmaker.view;
 
 import org.nosulkora.postmaker.controller.LabelController;
 import org.nosulkora.postmaker.controller.PostController;
+import org.nosulkora.postmaker.controller.WriterController;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
+import org.nosulkora.postmaker.model.Writer;
+import org.nosulkora.postmaker.repository.impl.JdbcLabelRepositoryImpl;
+import org.nosulkora.postmaker.repository.impl.JdbcPostRepositoryImpl;
+import org.nosulkora.postmaker.repository.impl.JdbcWriterRepositoryImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,33 +20,77 @@ public class PostView {
     private final Scanner scanner;
     private final PostController postController;
     private final LabelController labelController;
+    private final WriterController writerController;
 
-    public PostView(Scanner scanner, PostController postController, LabelController labelController) {
-        this.scanner = scanner;
-        this.postController = postController;
-        this.labelController = labelController;
+    public PostView() {
+        scanner = new Scanner(System.in);
+        postController = new PostController(
+                new JdbcWriterRepositoryImpl(),
+                new JdbcPostRepositoryImpl()
+        );
+        labelController = new LabelController();
+        writerController = new WriterController(
+                new JdbcWriterRepositoryImpl(),
+                new JdbcPostRepositoryImpl(),
+                new JdbcLabelRepositoryImpl());
     }
 
     public PostView(Scanner scanner) {
         this.scanner = scanner;
-        postController = new PostController();
+        postController = new PostController(
+                new JdbcWriterRepositoryImpl(),
+                new JdbcPostRepositoryImpl()
+        );
         labelController = new LabelController();
+        writerController = new WriterController(
+                new JdbcWriterRepositoryImpl(),
+                new JdbcPostRepositoryImpl(),
+                new JdbcLabelRepositoryImpl());
     }
 
-    public PostView() {
-        scanner = new Scanner(System.in);
-        postController = new PostController();
-        labelController = new LabelController();
+    public PostView(
+            Scanner scanner,
+            WriterController writerController,
+            PostController postController,
+            LabelController labelController
+    ) {
+        this.scanner = scanner;
+        this.writerController = writerController;
+        this.postController = postController;
+        this.labelController = labelController;
     }
 
     public void createPost() {
+        System.out.println("Введи id писателя из существующих или напиши 'new', что бы создать нового: ");
+        List<Writer> writers = writerController.getAllWriter();
+        writers.forEach(System.out::println);
+        Writer writer = null;
+        while (Objects.isNull(writer)) {
+            String text = scanner.nextLine();
+            if (text.trim().matches("[0-9.]*")) {
+                Long writerId = Long.parseLong(text);
+                writer = writerController.getWriterById(writerId);
+                if (Objects.isNull(writer)) {
+                    System.out.println("ты ввёл некорректный ID.");
+                }
+            } else if (text.trim().matches("new")) {
+                System.out.println("Enter writer firstName: ");
+                String firstName = scanner.nextLine();
+                System.out.println("Enter writer lastName: ");
+                String lastName = scanner.nextLine();
+                writer = writerController.createWriter(firstName, lastName, null);
+                System.out.println("writer create: " + writer);
+            } else {
+                System.out.println("Не верный ввод, попробуйте ещё раз.");
+            }
+        }
         System.out.println("Enter post title: ");
         String title = scanner.nextLine();
         System.out.println("Enter post content: ");
         String content = scanner.nextLine();
-        System.out.println(labelController.getAllLabels());
+//        System.out.println(labelController.getAllLabels());
         List<Label> labels = addLabels();
-        Post post = postController.createPost(title, content, labels);
+        Post post = postController.createPost(title, content, writer.getId(), labels);
         System.out.println("post create : " + post);
     }
 
@@ -78,7 +127,10 @@ public class PostView {
     }
 
     private List<Label> addLabels() {
-        System.out.println("Введи один или несколько label или введи id существующего из списка. В конце введи пустую строку.");
+        System.out.println(
+                "Введи один или несколько label или введи id существующего из списка. В конце введи пустую строку.");
+        List<Label> allLabels = labelController.getAllLabels();
+        allLabels.forEach(System.out::println);
         List<Label> result = new ArrayList<>();
         while (scanner.hasNextLine()) {
             String text = scanner.nextLine();

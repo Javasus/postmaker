@@ -61,5 +61,4 @@ public class LabelView {
         labelController.deleteLabel(id);
         System.out.println("Label is deleted.");
     }
-
 }

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- Тестовые авторы -->
+    <changeSet id="002-insert-sample-writers" author="nosulkora">
+        <insert tableName="writers" schemaName="postmaker">
+            <column name="id" valueNumeric="1"/>
+            <column name="first_name" value="Роман"/>
+            <column name="last_name" value="Носулько"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="writers">
+            <column name="id" valueNumeric="2"/>
+            <column name="first_name" value="Евгений"/>
+            <column name="last_name" value="Сулейманов"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="writers">
+            <column name="id" valueNumeric="3"/>
+            <column name="first_name" value="Руслан"/>
+            <column name="last_name" value="Ахметов"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+    </changeSet>
+
+    <!-- Тестовые метки -->
+    <changeSet id="002-insert-sample-labels" author="nosulkora">
+        <insert tableName="labels" schemaName="postmaker">
+            <column name="id" valueNumeric="1"/>
+            <column name="name" value="технологии"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="labels">
+            <column name="id" valueNumeric="2"/>
+            <column name="name" value="программирование"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="labels">
+            <column name="id" valueNumeric="3"/>
+            <column name="name" value="базы данных"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="labels">
+            <column name="id" valueNumeric="4"/>
+            <column name="name" value="java"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="labels">
+            <column name="id" valueNumeric="5"/>
+            <column name="name" value="spring"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="labels">
+            <column name="id" valueNumeric="6"/>
+            <column name="name" value="gradle"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+    </changeSet>
+
+    <!-- Тестовые посты -->
+    <changeSet id="002-insert-sample-posts" author="nosulkora">
+        <insert tableName="posts" schemaName="postmaker">
+            <column name="id" valueNumeric="1"/>
+            <column name="title" value="Введение в Java"/>
+            <column name="content" value="Java - это объектно-ориентированный язык программирования, который широко используется для разработки enterprise приложений."/>
+            <column name="writer_id" valueNumeric="1"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="posts">
+            <column name="id" valueNumeric="2"/>
+            <column name="title" value="Работа с базами данных"/>
+            <column name="content" value="Базы данных позволяют хранить и управлять данными эффективно. В этой статье рассмотрим основы SQL и JDBC."/>
+            <column name="writer_id" valueNumeric="2"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+        <insert tableName="posts">
+            <column name="id" valueNumeric="3"/>
+            <column name="title" value="Gradle для начинающих"/>
+            <column name="content" value="Gradle - это современная система сборки, которая предлагает гибкость и производительность для Java проектов."/>
+            <column name="writer_id" valueNumeric="3"/>
+            <column name="status" value="ACTIVE"/>
+        </insert>
+    </changeSet>
+
+    <!-- Связи постов и меток -->
+    <changeSet id="002-insert-sample-post-labels" author="nosulkora">
+        <!-- Пост 1: Введение в Java -->
+        <insert tableName="post_labels">
+            <column name="post_id" valueNumeric="1"/>
+            <column name="label_id" valueNumeric="2"/> <!-- программирование -->
+        </insert>
+        <insert tableName="post_labels">
+            <column name="post_id" valueNumeric="1"/>
+            <column name="label_id" valueNumeric="4"/> <!-- java -->
+        </insert>
+
+        <!-- Пост 2: Работа с базами данных -->
+        <insert tableName="post_labels">
+            <column name="post_id" valueNumeric="2"/>
+            <column name="label_id" valueNumeric="3"/> <!-- базы данных -->
+        </insert>
+        <insert tableName="post_labels">
+            <column name="post_id" valueNumeric="2"/>
+            <column name="label_id" valueNumeric="2"/> <!-- программирование -->
+        </insert>
+
+        <!-- Пост 3: Gradle для начинающих -->
+        <insert tableName="post_labels">
+            <column name="post_id" valueNumeric="3"/>
+            <column name="label_id" valueNumeric="6"/> <!-- gradle -->
+        </insert>
+        <insert tableName="post_labels">
+            <column name="post_id" valueNumeric="3"/>
+            <column name="label_id" valueNumeric="1"/> <!-- технологии -->
+        </insert>
+    </changeSet>
+</databaseChangeLog>

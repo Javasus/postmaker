@@ -2,7 +2,6 @@ package org.nosulkora.postmaker.model;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 
 public class Writer {
 
@@ -10,7 +9,7 @@ public class Writer {
 
     private String firstName;
 
-    private String lastname;
+    private String lastName;
 
     private List<Post> posts;
 
@@ -35,12 +34,12 @@ public class Writer {
         this.firstName = firstName;
     }
 
-    public String getLastname() {
-        return lastname;
+    public String getLastName() {
+        return lastName;
     }
 
-    public void setLastname(String lastname) {
-        this.lastname = lastname;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public List<Post> getPosts() {
@@ -64,7 +63,7 @@ public class Writer {
         return "Writer{" +
                 "id=" + id +
                 ", firstName='" + firstName + '\'' +
-                ", lastname='" + lastname + '\'' +
+                ", lastname='" + lastName + '\'' +
                 ", posts=" + posts +
                 ", status=" + status +
                 '}';

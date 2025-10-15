@@ -79,6 +79,7 @@ public class GsonWriterRepositoryImpl implements WriterRepository {
     private List<Writer> getAllWritersInternal() {
         try (FileReader fileReader = new FileReader(FILE_PATH)) {
             Type type = new TypeToken<List<Writer>>() {
+
             }.getType();
             List<Writer> existing = GSON.fromJson(fileReader, type);
             return existing != null ? existing : new ArrayList<>();

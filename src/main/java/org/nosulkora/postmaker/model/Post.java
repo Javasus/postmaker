@@ -1,7 +1,6 @@
 package org.nosulkora.postmaker.model;
 
 import java.util.List;
-import java.util.Random;
 
 public class Post {
 
@@ -14,6 +13,8 @@ public class Post {
     private List<Label> labels;
 
     private Status status;
+
+    private long writerId;
 
     public Post() {
     }
@@ -58,14 +59,23 @@ public class Post {
         this.status = status;
     }
 
+    public long getWriterId() {
+        return writerId;
+    }
+
+    public void setWriterId(long writerId) {
+        this.writerId = writerId;
+    }
+
     @Override
     public String toString() {
         return "Post{" +
-                "id=" + id +
-                ", title='" + title + '\'' +
-                ", content='" + content + '\'' +
-                ", labels=" + labels +
-                ", status=" + status +
-                '}';
+               "id=" + id +
+               ", title='" + title + '\'' +
+               ", content='" + content + '\'' +
+               ", labels=" + labels +
+               ", status=" + status +
+               ", writer=" + writerId +
+               '}';
     }
 }

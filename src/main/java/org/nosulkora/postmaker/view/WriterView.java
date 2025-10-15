@@ -6,6 +6,10 @@ import org.nosulkora.postmaker.controller.WriterController;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Writer;
+import org.nosulkora.postmaker.repository.impl.GsonLabelRepositoryImpl;
+import org.nosulkora.postmaker.repository.impl.JdbcLabelRepositoryImpl;
+import org.nosulkora.postmaker.repository.impl.JdbcPostRepositoryImpl;
+import org.nosulkora.postmaker.repository.impl.JdbcWriterRepositoryImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,14 +25,22 @@ public class WriterView {
 
     public WriterView() {
         scanner = new Scanner(System.in);
-        writerController = new WriterController();
+        writerController = new WriterController(
+                new JdbcWriterRepositoryImpl(),
+                new JdbcPostRepositoryImpl(),
+                new JdbcLabelRepositoryImpl()
+        );
         postController = new PostController();
         labelController = new LabelController();
     }
 
     public WriterView(Scanner scanner) {
         this.scanner = scanner;
-        writerController = new WriterController();
+        writerController = new WriterController(
+                new JdbcWriterRepositoryImpl(),
+                new JdbcPostRepositoryImpl(),
+                new GsonLabelRepositoryImpl()
+        );
         postController = new PostController();
         labelController = new LabelController();
     }
@@ -50,8 +62,8 @@ public class WriterView {
         String firstName = scanner.nextLine();
         System.out.println("Enter writer lastName: ");
         String lastName = scanner.nextLine();
-        List<Post> posts = addPosts();
-        Writer writer = writerController.createWriter(firstName, lastName, posts);
+        Writer writer = writerController.createWriter(firstName, lastName, null);
+//        List<Post> posts = addPosts(writer.getId());
         System.out.println("writer create: " + writer);
     }
 
@@ -74,8 +86,9 @@ public class WriterView {
         String firstName = scanner.nextLine();
         System.out.println("Enter writer lastName: ");
         String lastName = scanner.nextLine();
-        List<Post> posts = addPosts();
-        Writer writer = writerController.updateWriter(id, firstName, lastName, posts);
+        Writer writer = writerController.updateWriter(id, firstName, lastName, null);
+//        List<Post> posts = addPosts(writer.getId());
+//        writer.setPosts(posts);
         System.out.println("writer update : " + writer);
     }
 
@@ -86,44 +99,44 @@ public class WriterView {
         System.out.println("Writer is delete");
     }
 
-    private List<Post> addPosts() {
-        System.out.println("Введи один или несколько post. В конце введи пустую строку.");
-        List<Post> posts = new ArrayList<>();
-        System.out.println("Enter post title: ");
-        while (scanner.hasNextLine()) {
-            String title = scanner.nextLine();
-            if (title.trim().isEmpty()) break;
-            System.out.println("Enter post content: ");
-            String content = scanner.nextLine();
-            List<Label> labels = addLabels();
-            Post post = postController.createPost(title, content, labels);
-            posts.add(post);
-            System.out.println("Enter post title: ");
-        }
-        return posts;
-    }
-
-    private List<Label> addLabels() {
-        System.out.println(
-                "Введи один или несколько label или введи id существующего из списка. " +
-                        "В конце введи пустую строку.");
-        List<Label> result = new ArrayList<>();
-        while (scanner.hasNextLine()) {
-            String text = scanner.nextLine();
-            if (text.trim().isEmpty()) break;
-
-            Label label = null;
-            if (text.trim().matches("[0-9.]*")) {
-                Long id = Long.parseLong(text);
-                label = labelController.getLabelById(id);
-            }
-
-            if (Objects.isNull(label)) {
-                label = labelController.createlabel(text);
-            }
-
-            result.add(label);
-        }
-        return result;
-    }
+//    private List<Post> addPosts(Long writerId) {
+//        System.out.println("Введи один или несколько post. В конце введи пустую строку.");
+//        List<Post> posts = new ArrayList<>();
+//        System.out.println("Enter post title: ");
+//        while (scanner.hasNextLine()) {
+//            String title = scanner.nextLine();
+//            if (title.trim().isEmpty()) break;
+//            System.out.println("Enter post content: ");
+//            String content = scanner.nextLine();
+//            List<Label> labels = addLabels();
+//            Post post = postController.createPost(title, content, writerId, labels);
+//            posts.add(post);
+//            System.out.println("Enter post title: ");
+//        }
+//        return posts;
+//    }
+//
+//    private List<Label> addLabels() {
+//        System.out.println(
+//                "Введи один или несколько label или введи id существующего из списка. " +
+//                        "В конце введи пустую строку.");
+//        List<Label> result = new ArrayList<>();
+//        while (scanner.hasNextLine()) {
+//            String text = scanner.nextLine();
+//            if (text.trim().isEmpty()) break;
+//
+//            Label label = null;
+//            if (text.trim().matches("[0-9.]*")) {
+//                Long id = Long.parseLong(text);
+//                label = labelController.getLabelById(id);
+//            }
+//
+//            if (Objects.isNull(label)) {
+//                label = labelController.createlabel(text);
+//            }
+//
+//            result.add(label);
+//        }
+//        return result;
+//    }
 }

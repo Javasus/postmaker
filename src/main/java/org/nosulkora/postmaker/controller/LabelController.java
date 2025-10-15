@@ -3,7 +3,7 @@ package org.nosulkora.postmaker.controller;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.repository.LabelRepository;
-import org.nosulkora.postmaker.repository.impl.GsonLabelRepositoryImpl;
+import org.nosulkora.postmaker.repository.impl.JdbcLabelRepositoryImpl;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ public class LabelController {
     private final LabelRepository labelRepository;
 
     public LabelController() {
-        this.labelRepository = new GsonLabelRepositoryImpl();
+        this.labelRepository = new JdbcLabelRepositoryImpl();
     }
 
     public LabelController(LabelRepository labelRepository) {
