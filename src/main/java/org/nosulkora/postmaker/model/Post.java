@@ -14,7 +14,7 @@ public class Post {
 
     private Status status;
 
-    private long writerId;
+    private Long writerId;
 
     public Post() {
     }
@@ -59,11 +59,11 @@ public class Post {
         this.status = status;
     }
 
-    public long getWriterId() {
+    public Long getWriterId() {
         return writerId;
     }
 
-    public void setWriterId(long writerId) {
+    public void setWriterId(Long writerId) {
         this.writerId = writerId;
     }
 

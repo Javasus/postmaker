@@ -30,7 +30,7 @@ public class LabelView {
         System.out.println("Enter label name: ");
         String labelName = scanner.nextLine();
 
-        Label label = labelController.createlabel(labelName);
+        Label label = labelController.createLabel(labelName);
         System.out.println("Label create: " + label);
     }
 

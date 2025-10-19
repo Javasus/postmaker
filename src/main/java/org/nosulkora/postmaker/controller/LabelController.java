@@ -19,7 +19,7 @@ public class LabelController {
         this.labelRepository = labelRepository;
     }
 
-    public Label createlabel(String name) {
+    public Label createLabel(String name) {
         Label label = new Label();
         label.setName(name);
         label.setStatus(Status.ACTIVE);

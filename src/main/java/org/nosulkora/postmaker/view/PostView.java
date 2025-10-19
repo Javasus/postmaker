@@ -143,7 +143,7 @@ public class PostView {
             }
 
             if (Objects.isNull(label)) {
-                label = labelController.createlabel(text);
+                label = labelController.createLabel(text);
             }
 
             result.add(label);

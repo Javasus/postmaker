@@ -4,10 +4,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.nosulkora.postmaker.database.LiquibaseManager;
 import org.nosulkora.postmaker.model.Writer;
-import org.nosulkora.postmaker.repository.WriterRepository;
 import org.nosulkora.postmaker.repository.impl.JdbcWriterRepositoryImpl;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class WriterRepositoryTest {
 
