@@ -6,7 +6,6 @@ import org.nosulkora.postmaker.controller.WriterController;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Writer;
-import org.nosulkora.postmaker.repository.impl.JdbcLabelRepositoryImpl;
 import org.nosulkora.postmaker.repository.impl.JdbcPostRepositoryImpl;
 import org.nosulkora.postmaker.repository.impl.JdbcWriterRepositoryImpl;
 
@@ -29,10 +28,7 @@ public class PostView {
                 new JdbcPostRepositoryImpl()
         );
         labelController = new LabelController();
-        writerController = new WriterController(
-                new JdbcWriterRepositoryImpl(),
-                new JdbcPostRepositoryImpl(),
-                new JdbcLabelRepositoryImpl());
+        writerController = new WriterController(new JdbcWriterRepositoryImpl());
     }
 
     public PostView(Scanner scanner) {
@@ -42,10 +38,7 @@ public class PostView {
                 new JdbcPostRepositoryImpl()
         );
         labelController = new LabelController();
-        writerController = new WriterController(
-                new JdbcWriterRepositoryImpl(),
-                new JdbcPostRepositoryImpl(),
-                new JdbcLabelRepositoryImpl());
+        writerController = new WriterController(new JdbcWriterRepositoryImpl());
     }
 
     public PostView(
@@ -62,7 +55,7 @@ public class PostView {
 
     public void createPost() {
         System.out.println("Введи id писателя из существующих или напиши 'new', что бы создать нового: ");
-        List<Writer> writers = writerController.getAllWriter();
+        List<Writer> writers = writerController.getAllWriters();
         writers.forEach(System.out::println);
         Writer writer = null;
         while (Objects.isNull(writer)) {
@@ -78,7 +71,7 @@ public class PostView {
                 String firstName = scanner.nextLine();
                 System.out.println("Enter writer lastName: ");
                 String lastName = scanner.nextLine();
-                writer = writerController.createWriter(firstName, lastName, null);
+                writer = writerController.createWriter(firstName, lastName);
                 System.out.println("writer create: " + writer);
             } else {
                 System.out.println("Не верный ввод, попробуйте ещё раз.");
@@ -88,7 +81,6 @@ public class PostView {
         String title = scanner.nextLine();
         System.out.println("Enter post content: ");
         String content = scanner.nextLine();
-//        System.out.println(labelController.getAllLabels());
         List<Label> labels = addLabels();
         Post post = postController.createPost(title, content, writer.getId(), labels);
         System.out.println("post create : " + post);

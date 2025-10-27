@@ -1,38 +1,77 @@
 package org.nosulkora.postmaker.database;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
 
 public class DatabaseManager {
-    private static final String URL = "jdbc:mysql://localhost:3307/postmaker";
-    private static final String USER = "appuser";
-    private static final String PASSWORD = "apppassword";
+    private static final HikariDataSource dataSource;
 
-    private static Connection connection;
+    static {
+        // настройки подключения
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:mysql://localhost:3307/postmaker");
+        config.setUsername("appuser");
+        config.setPassword("apppassword");
+        config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+
+        // настройки пула
+        config.setMaximumPoolSize(20); // макс соединений
+        config.setMinimumIdle(5); // мин простаивающих соединений
+        config.setConnectionTimeout(30000); // 30сек таймаут на получ. соед.
+        config.setIdleTimeout(600000); // 10мин время жизни простаивающего соед.
+        config.setMaxLifetime(1800000); // 30мин макисмальное время жизни соед.
+        config.setAutoCommit(true); // автокомит по умолчанию
+
+        // оптимизация для MySQL
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        config.addDataSourceProperty("useServerPrepStmts", "true");
+        config.addDataSourceProperty("useLocalSessionState", "true");
+        config.addDataSourceProperty("rewriteBatchedStatements", "true");
+        config.addDataSourceProperty("cacheResultSetMetadata", "true");
+        config.addDataSourceProperty("cacheServerConfiguration", "true");
+        config.addDataSourceProperty("elideSetAutoCommits", "true");
+        config.addDataSourceProperty("maintainTimeStats", "false");
+
+        config.addDataSourceProperty("useUnicode", "true");
+        config.addDataSourceProperty("characterEncoding", "UTF-8");
+        config.addDataSourceProperty("serverTimezone", "UTC");
+
+        dataSource = new HikariDataSource(config);
+    }
 
     public static Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            Properties props = new Properties();
-            props.setProperty("user", USER);
-            props.setProperty("password", PASSWORD);
-            props.setProperty("useUnicode", "true");
-            props.setProperty("characterEncoding", "UTF-8");
-            props.setProperty("serverTimezone", "UTC");
+        return dataSource.getConnection();
+    }
 
-            connection = DriverManager.getConnection(URL, props);
-        }
-        return connection;
+    // Для миграции
+    public static DataSource getDataSource() {
+        return dataSource;
     }
 
     public static void closeConnection() {
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                System.out.println("Ошибка при закрытии соединения: " + e.getMessage());
-            }
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+            System.out.println("HikariCP pool closed");
         }
     }
+
+    /**
+     * Статистика пула для мониторинга
+     */
+    public static void printPoolStats() {
+        if (dataSource != null) {
+            System.out.println("HikariCP Pool Stats:");
+            System.out.println("Active connections: " + dataSource.getHikariPoolMXBean().getActiveConnections());
+            System.out.println("Idle connections: " + dataSource.getHikariPoolMXBean().getIdleConnections());
+            System.out.println("Total connections: " + dataSource.getHikariPoolMXBean().getTotalConnections());
+            System.out.println("Threads awaiting connection: " + dataSource.getHikariPoolMXBean().getThreadsAwaitingConnection());
+        }
+    }
+
 }

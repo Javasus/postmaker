@@ -1,113 +1,107 @@
 package org.nosulkora.postmaker.repository.impl;
 
 import org.nosulkora.postmaker.database.DatabaseManager;
+import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Status;
+import org.nosulkora.postmaker.repository.ConnectionManager;
 import org.nosulkora.postmaker.repository.LabelRepository;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcLabelRepositoryImpl implements LabelRepository {
+
+    private static final String SQL_CREATE_LABEL =
+            "INSERT INTO postmaker.labels (name, status) VALUES (?, ?)";
+
+    private static final String SQL_UPDATE_LABEL =
+            "UPDATE postmaker.labels SET name = ?, status = ? WHERE id = ?";
+
+    private static final String SQL_GET_LABEL_BY_ID =
+            "SELECT id, name, status FROM postmaker.labels WHERE id = ? AND status != 'DELETED'";
+
+    private static final String SQL_GET_ALL_LABELS =
+            "SELECT id, name, status FROM postmaker.labels WHERE status != 'DELETED' ORDER BY id";
+
+    private static final String SQL_DELETE_LABEL =
+            "UPDATE postmaker.labels SET status = 'DELETED' WHERE id = ?";
+
+    private static final String SQL_GET_LABEL_BY_NAME =
+            "SELECT id, name, status FROM postmaker.labels WHERE name = ? AND status != 'DELETED'";
+
+    private static final String SQL_GET_LABELS_BY_POST_ID = """
+        SELECT l.id, l.name, l.status
+        FROM postmaker.labels l
+        JOIN postmaker.post_labels pl ON l.id = pl.label_id
+        WHERE pl.post_id = ? AND l.status != 'DELETED'
+        ORDER BY l.name
+        """;
+
     @Override
     public Label save(Label label) {
-
-        if (label.getId() == null) {
-            label.setId(generateNextId());
-        }
-
-        String sql = "INSERT INTO postmaker.labels (id, name, status) VALUES (?, ?, ?)";
-
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setLong(1, label.getId());
-            pstmt.setString(2, label.getName());
-            pstmt.setString(3, label.getStatus().name());
-            pstmt.executeUpdate();
-
-            return label;
-
+        try (Connection conn = ConnectionManager.autoCommitConnection()) {
+            return insertLabel(conn, label);
         } catch (SQLException e) {
-            System.out.println("Ошибка при сохранении лейбла: " + e.getMessage());
-            return null;
+            throw new RepositoryException("Ошибка при сохранении лейбла: " + label, e);
         }
     }
 
     @Override
     public Label update(Label label) {
-        String sql = "UPDATE postmaker.labels SET name = ?, status = ? WHERE id = ?";
-
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, label.getName());
-            pstmt.setString(2, label.getStatus().name());
-            pstmt.setLong(3, label.getId());
-            pstmt.executeUpdate();
-
+        try (Connection conn = DatabaseManager.getConnection()) {
+            updateLabel(conn, label);
             return label;
-
         } catch (SQLException e) {
-            System.out.println("Ошибка при обновлении лейбла: " + e.getMessage());
-            return null;
+            throw new RepositoryException("Ошибка при обновлении лейбла с id: " + label.getId(), e);
         }
     }
 
     @Override
     public Label getById(Long id) {
-        String sql = "SELECT * FROM postmaker.labels WHERE id = ? AND status != 'DELETED'";
+        try (Connection conn = ConnectionManager.autoCommitConnection();
+        PreparedStatement ps = conn.prepareStatement(SQL_GET_LABEL_BY_ID)) {
+            ps.setLong(1, id);
 
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setLong(1, id);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToLabel(rs);
-                }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? mapResultSetToLabel(rs) : null;
             }
 
         } catch (SQLException e) {
-            System.out.println("Ошибка при поиске лейбла: " + e.getMessage());
+            throw new RepositoryException("Ошибка при поиске лейбла по id: " + id, e);
         }
-
-        return null;
     }
 
     @Override
     public List<Label> getAll() {
-        List<Label> labels = new ArrayList<>();
-        String sql = "SELECT * FROM postmaker.labels WHERE status != 'DELETED' ORDER BY id";
+        try (Connection conn = ConnectionManager.autoCommitConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_GET_ALL_LABELS);
+             ResultSet rs = ps.executeQuery()) {
 
-        try (Connection conn = DatabaseManager.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
+            List<Label> labels = new ArrayList<>();
             while (rs.next()) {
                 labels.add(mapResultSetToLabel(rs));
             }
+            return labels;
 
         } catch (SQLException e) {
-            System.out.println("Ошибка при получении всех лейблов: " + e.getMessage());
+            throw new RepositoryException("Ошибка при получении всех лейблов: ", e);
         }
-
-        return labels;
     }
 
     @Override
     public void deleteById(Long id) {
-        String sql = "UPDATE postmaker.labels SET status = 'DELETED' WHERE id = ?";
-
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setLong(1, id);
-            pstmt.executeUpdate();
+        try (Connection conn = ConnectionManager.autoCommitConnection();
+             PreparedStatement ps = conn.prepareStatement(SQL_DELETE_LABEL)) {
+            ps.setLong(1, id);
+            ps.executeUpdate();
 
         } catch (SQLException e) {
-            System.out.println("Ошибка при удалении лейбла: " + e.getMessage());
+            throw new RepositoryException("Ошибка при удалении лейбла с id : " + id, e);
         }
     }
 
@@ -120,23 +114,40 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
     }
 
     /**
-     * Генерирует следующий ID на основе максимального существующего
+     *  Создание лейбла.
      */
-    private Long generateNextId() {
-        String sql = "SELECT COALESCE(MAX(id), 0) FROM postmaker.labels";
+    private Label insertLabel(Connection conn, Label label) throws SQLException {
+        try (PreparedStatement ps = ConnectionManager.preparedStatementWithKeys(conn, SQL_CREATE_LABEL)) {
+            ps.setString(1, label.getName());
+            ps.setString(2, label.getStatus().name());
 
-        try (Connection conn = DatabaseManager.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            if (rs.next()) {
-                return rs.getLong(1) + 1;
+            if (ps.executeUpdate() == 0) {
+                throw new SQLException("Не удалось создать лейбл, ни одна запись не была добавлена.");
             }
 
-        } catch (SQLException e) {
-            System.out.println("Ошибка при генерации ID: " + e.getMessage());
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    label.setId(rs.getLong(1));
+                    return label;
+                } else {
+                    throw new SQLException("Не удалось создать лейбл, id не получен.");
+                }
+            }
         }
-
-        return 1L;
     }
+
+    /**
+     *  Обновляем лейбл.
+     */
+   private void updateLabel(Connection conn, Label label) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_LABEL)) {
+            ps.setString(1, label.getName());
+            ps.setString(2, label.getStatus().name());
+            ps.setLong(3, label.getId());
+
+            if (ps.executeUpdate() == 0) {
+                throw new SQLException("бновление лейбла не удалось, ни одна запись не была изменена.");
+            }
+        }
+   }
 }
