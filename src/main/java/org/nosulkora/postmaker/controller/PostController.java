@@ -1,5 +1,6 @@
 package org.nosulkora.postmaker.controller;
 
+import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Status;
@@ -32,7 +33,7 @@ public class PostController {
         this.writerRepository = new JdbcWriterRepositoryImpl();
     }
 
-    public Post createPost(String title, String content, Long writerId, List<Label> labels) {
+    public Post createPost(String title, String content, Long writerId, List<Label> labels) throws RepositoryException {
 
         Writer writer = writerRepository.getById(writerId);
         if (Objects.isNull(writer)) {
@@ -47,15 +48,15 @@ public class PostController {
         return postRepository.save(post);
     }
 
-    public Post getPostById(Long id) {
+    public Post getPostById(Long id) throws RepositoryException {
         return postRepository.getById(id);
     }
 
-    public List<Post> getAllPosts() {
+    public List<Post> getAllPosts() throws RepositoryException {
         return postRepository.getAll();
     }
 
-    public Post updatePost(Long id, String title, String content, List<Label> labels) {
+    public Post updatePost(Long id, String title, String content, List<Label> labels) throws RepositoryException {
         Post post = postRepository.getById(id);
         if (Objects.isNull(post)) {
             throw new IllegalArgumentException("Пост с ID " + id + " не найден");
@@ -66,7 +67,7 @@ public class PostController {
         return postRepository.update(post);
     }
 
-    public void deletePost(Long id) {
+    public void deletePost(Long id) throws RepositoryException {
         postRepository.deleteById(id);
     }
 }

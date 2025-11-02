@@ -1,5 +1,6 @@
 package org.nosulkora.postmaker.controller;
 
+import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.model.Writer;
 import org.nosulkora.postmaker.repository.WriterRepository;
@@ -16,7 +17,7 @@ public class WriterController {
         this.writerRepository = writerRepository;
     }
 
-    public Writer createWriter(String firstName, String lastName) {
+    public Writer createWriter(String firstName, String lastName) throws RepositoryException {
         Writer writer = new Writer();
         writer.setFirstName(firstName);
         writer.setLastName(lastName);
@@ -24,7 +25,7 @@ public class WriterController {
         return writerRepository.save(writer);
     }
 
-    public Writer getWriterById(Long id) {
+    public Writer getWriterById(Long id) throws RepositoryException {
         Writer writer = writerRepository.getById(id);
         if (writer == null) {
            throw new IllegalArgumentException("Не найден писатель с id = " + id);
@@ -32,18 +33,18 @@ public class WriterController {
         return writer;
     }
 
-    public List<Writer> getAllWriters() {
+    public List<Writer> getAllWriters() throws RepositoryException {
         return writerRepository.getAll();
     }
 
-    public Writer updateWriter(Long id, String firstName, String lastName) {
+    public Writer updateWriter(Long id, String firstName, String lastName) throws RepositoryException {
         Writer writer = getWriterById(id);
         writer.setFirstName(firstName);
         writer.setLastName(lastName);
         return writerRepository.update(writer);
     }
 
-    public void deleteWriter(Long id) {
+    public void deleteWriter(Long id) throws RepositoryException {
         writerRepository.deleteById(id);
     }
 }

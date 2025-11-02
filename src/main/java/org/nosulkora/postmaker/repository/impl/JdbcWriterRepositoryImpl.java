@@ -53,112 +53,168 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
             "UPDATE postmaker.writers SET status = 'DELETED' WHERE id = ?";
 
     @Override
-    public Writer save(Writer writer) {
-        try (Connection conn = ConnectionManager.autoCommitConnection()) {
-            return insertWriter(conn, writer);
-        } catch (SQLException e) {
+    public Writer save(Writer writer) throws RepositoryException {
+        try {
+            Long writerId = ConnectionManager.executeInsert(
+                    SQL_CREATE_WRITER,
+                    ps -> setWriterParameters(ps, writer)
+            );
+            writer.setId(writerId);
+            return writer;
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при сохранении писателя: " + writer, e);
         }
     }
 
     @Override
-    public Writer update(Writer writer) {
-        try (Connection conn = ConnectionManager.autoCommitConnection()) {
-            updateWriter(conn, writer);
+    public Writer update(Writer writer) throws RepositoryException {
+        try {
+            int affectedRaws = ConnectionManager.executeUpdate(
+                    SQL_UPDATE_WRITER,
+                    ps -> {
+                        try {
+                            setWriterParameters(ps, writer);
+                            ps.setLong(4, writer.getId());
+                        } catch (SQLException e) {
+                            throw new RepositoryException("Ошибка установки параметров для обновления writer", e);
+                        }
+                    }
+            );
+            if (affectedRaws == 0) {
+                throw new RepositoryException("Writer с ID " + writer.getId() + " не найден для обновления.");
+            }
             return writer;
-        } catch (SQLException e) {
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при обновлении писателя: " + writer, e);
         }
     }
 
     @Override
-    public Writer getById(Long id) {
-        try (Connection conn = ConnectionManager.autoCommitConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_GET_WRITER_BY_ID)) {
-            ps.setLong(1, id);
-            try (ResultSet rs = ps.executeQuery()) {
-                List<Writer> writers = extractWritersFromResultSet(rs);
-                return writers.isEmpty() ? null : writers.get(0);
-            }
-        } catch (SQLException e) {
+    public Writer getById(Long id) throws RepositoryException {
+        try {
+            return ConnectionManager.executeQuerySingle(
+                    SQL_GET_WRITER_BY_ID,
+                    this::mapSingleResultSetToWriterWithPostsAndLabels,
+                    id
+            );
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при поиске писателя с id: " + id, e);
         }
     }
 
     @Override
-    public List<Writer> getAll() {
-        try (Connection conn = ConnectionManager.autoCommitConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_GET_ALL_WRITERS);
-             ResultSet rs = ps.executeQuery()) {
-            return extractWritersFromResultSet(rs);
-        } catch (SQLException e) {
+    public List<Writer> getAll() throws RepositoryException {
+        try {
+            return ConnectionManager.executeQueryList(
+                    SQL_GET_ALL_WRITERS,
+                    this::extractWritersFromResultSet);
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при получении всех писателей.", e);
         }
     }
 
     @Override
-    public void deleteById(Long id) {
-        try (Connection conn = ConnectionManager.autoCommitConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_DELETE_WRITER)) {
-            ps.setLong(1, id);
-            ps.executeUpdate();
-        } catch (SQLException e) {
+    public void deleteById(Long id) throws RepositoryException {
+        try  {
+           int affectedRows = ConnectionManager.executeUpdate(
+                   SQL_DELETE_WRITER,
+                   ps -> {
+                       try{
+                           ps.setLong(1, id);
+                       } catch (SQLException e) {
+                           throw new RepositoryException("Ошибка установки параметра для удаления." + e);
+                       }
+                   });
+
+           if (affectedRows == 0) {
+               throw new RepositoryException("Писатель с ID " + id + " не найден для удаления.");
+           }
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при удалении писателя с id: " + id, e);
+        }
+    }
+
+    //------------------------------------private methods-------------------------------------------------------
+
+    /**
+     * Маппит ResultSet в объект Writer с постами и лейблами (из JOIN запроса)
+     */
+    private Writer mapSingleResultSetToWriterWithPostsAndLabels(ResultSet rs) throws RepositoryException {
+        List<Writer> writers = extractWritersFromResultSet(rs);
+        return  writers.isEmpty() ? null : writers.get(0);
+    }
+
+    private void addPostToWriterIfPresent(ResultSet rs, Writer writer) throws SQLException {
+        Long postId = rs.getLong("post_id");
+        if (!rs.wasNull() && postId > 0) {
+            Post post = new Post();
+            post.setId(postId);
+            post.setTitle(rs.getString("title"));
+            post.setContent(rs.getString("content"));
+            post.setWriterId(rs.getLong("post_writer_id"));
+            post.setStatus(Status.valueOf(rs.getString("post_status")));
+            post.setLabels(new ArrayList<>());
+            writer.getPosts().add(post);
         }
     }
 
     /**
      * Извлекает писателей с постами и лейблами из resultSet.
      */
-    private List<Writer> extractWritersFromResultSet(ResultSet rs) throws SQLException {
-        Map<Long, Writer> writersMap = new HashMap<>();
-        Map<Long, Post> postsMap = new HashMap<>();
+    private List<Writer> extractWritersFromResultSet(ResultSet rs) {
+        try {
 
-        while (rs.next()) {
-            Long writerId = rs.getLong("writer_id");
+            Map<Long, Writer> writersMap = new HashMap<>();
+            Map<Long, Post> postsMap = new HashMap<>();
 
-            // Получаем писателя
-            Writer writer = writersMap.computeIfAbsent(writerId, id -> {
-                try {
-                    return createBasicWriterFromResultSet(rs);
-                } catch (SQLException e) {
-                    throw new RepositoryException("Ошибка при получении писателя из resultSet: " + rs, e);
-                }
-            });
+            while (rs.next()) {
+                Long writerId = rs.getLong("writer_id");
 
-            Long postId = rs.getLong("post_id");
-            if (!rs.wasNull() && postId > 0) {
-                // Получаем пост
-                Post post = postsMap.computeIfAbsent(postId, id -> {
-                   try {
-                       return createPostFromResultSet(rs);
-                   } catch (SQLException e) {
-                       throw new RepositoryException("Ошибка при получении поста из resultSet: " + rs, e);
-                   }
+                // Получаем писателя
+                Writer writer = writersMap.computeIfAbsent(writerId, id -> {
+                    try {
+                        return createBasicWriterFromResultSet(rs);
+                    } catch (SQLException e) {
+                        throw new RepositoryException("Ошибка при получении писателя из resultSet: " + rs, e);
+                    }
                 });
 
-                // Добавляем пост к писателю
-                if (writer.getPosts() == null) {
-                    writer.setPosts(new ArrayList<>());
-                }
-                if (writer.getPosts().stream().noneMatch(p -> p.getId().equals(postId))) {
-                    writer.getPosts().add(post);
-                }
+                Long postId = rs.getLong("post_id");
+                if (!rs.wasNull() && postId > 0) {
+                    // Получаем пост
+                    Post post = postsMap.computeIfAbsent(postId, id -> {
+                        try {
+                            return createPostFromResultSet(rs);
+                        } catch (SQLException e) {
+                            throw new RepositoryException("Ошибка при получении поста из resultSet: " + rs, e);
+                        }
+                    });
 
-                Long labelId = rs.getLong("label_id");
-                if (!rs.wasNull() && labelId > 0) {
-                    Label label = createLabelFromResultSet(rs);
-
-                    if (post.getLabels() == null) {
-                        post.setLabels(new ArrayList<>());
+                    // Добавляем пост к писателю
+                    if (writer.getPosts() == null) {
+                        writer.setPosts(new ArrayList<>());
                     }
-                    if (post.getLabels().stream().noneMatch(l -> l.getId().equals(labelId))) {
-                        post.getLabels().add(label);
+                    if (writer.getPosts().stream().noneMatch(p -> p.getId().equals(postId))) {
+                        writer.getPosts().add(post);
+                    }
+
+                    Long labelId = rs.getLong("label_id");
+                    if (!rs.wasNull() && labelId > 0) {
+                        Label label = createLabelFromResultSet(rs);
+
+                        if (post.getLabels() == null) {
+                            post.setLabels(new ArrayList<>());
+                        }
+                        if (post.getLabels().stream().noneMatch(l -> l.getId().equals(labelId))) {
+                            post.getLabels().add(label);
+                        }
                     }
                 }
             }
+            return new ArrayList<>(writersMap.values());
+        } catch (SQLException e) {
+            throw new RepositoryException("Ошибка маппинга ResultSet в список писателей.", e);
         }
-        return new ArrayList<>(writersMap.values());
     }
 
     /**
@@ -200,24 +256,13 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
     /**
      * Добавляет писателя.
      */
-    private Writer insertWriter(Connection conn, Writer writer) throws SQLException {
-        try (PreparedStatement ps = ConnectionManager.preparedStatementWithKeys(conn, SQL_CREATE_WRITER)) {
+    private void setWriterParameters(PreparedStatement ps, Writer writer) throws RepositoryException {
+        try {
             ps.setString(1, writer.getFirstName());
             ps.setString(2, writer.getLastName());
             ps.setString(3, writer.getStatus().name());
-
-            if (ps.executeUpdate() == 0) {
-                throw new SQLException("Не удалось создать писателя, ни одна из записей не была добавлена.");
-            }
-
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    writer.setId(rs.getLong(1));
-                    return writer;
-                } else {
-                    throw new SQLException("Не удалось создать писателя, id не получен.");
-                }
-            }
+        } catch (SQLException e) {
+            throw new RepositoryException("шибка установки параметров писателя.", e);
         }
     }
 

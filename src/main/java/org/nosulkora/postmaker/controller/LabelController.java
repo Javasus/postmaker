@@ -1,5 +1,6 @@
 package org.nosulkora.postmaker.controller;
 
+import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.repository.LabelRepository;
@@ -19,28 +20,28 @@ public class LabelController {
         this.labelRepository = labelRepository;
     }
 
-    public Label createLabel(String name) {
+    public Label createLabel(String name) throws RepositoryException {
         Label label = new Label();
         label.setName(name);
         label.setStatus(Status.ACTIVE);
         return labelRepository.save(label);
     }
 
-    public Label getLabelById(Long id) {
+    public Label getLabelById(Long id) throws RepositoryException {
         return labelRepository.getById(id);
     }
 
-    public List<Label> getAllLabels() {
+    public List<Label> getAllLabels() throws RepositoryException {
         return labelRepository.getAll();
     }
 
-    public Label updateLabel(Long id, String name) {
+    public Label updateLabel(Long id, String name) throws RepositoryException {
         Label label = labelRepository.getById(id);
         label.setName(name);
         return labelRepository.update(label);
     }
 
-    public void deleteLabel(Long id) {
+    public void deleteLabel(Long id) throws RepositoryException {
         labelRepository.deleteById(id);
     }
 }

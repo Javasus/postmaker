@@ -1,6 +1,7 @@
 package org.nosulkora.postmaker.view;
 
 import org.nosulkora.postmaker.controller.WriterController;
+import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Writer;
 import org.nosulkora.postmaker.repository.impl.JdbcPostRepositoryImpl;
 import org.nosulkora.postmaker.repository.impl.JdbcWriterRepositoryImpl;
@@ -33,20 +34,32 @@ public class WriterView {
         String firstName = scanner.nextLine();
         System.out.println("Enter writer lastName: ");
         String lastName = scanner.nextLine();
-        Writer writer = writerController.createWriter(firstName, lastName);
-        System.out.println("writer create: " + writer);
+        try {
+            Writer writer = writerController.createWriter(firstName, lastName);
+            System.out.println("writer create: " + writer);
+        } catch (RepositoryException e) {
+            System.out.println("При создании писателя возникла ошибка - " + e);
+        }
     }
 
     public void getWriterById() {
         System.out.println("Enter writerID: ");
         Long id = Long.parseLong(scanner.nextLine());
-        Writer writer = writerController.getWriterById(id);
-        System.out.println("writer by ID: " + writer);
+        try {
+            Writer writer = writerController.getWriterById(id);
+            System.out.println("writer by ID: " + writer);
+        } catch (RepositoryException e) {
+            System.out.println("При возврате писателя возникла ошибка - " + e);
+        }
     }
 
     public void getAllWriters() {
-        List<Writer> writers = writerController.getAllWriters();
-        writers.forEach(System.out::println);
+        try {
+            List<Writer> writers = writerController.getAllWriters();
+            writers.forEach(System.out::println);
+        } catch (RepositoryException e) {
+            System.out.println("При возврате всех писателей возникла ошибка - " + e);
+        }
     }
 
     public void updateWriter() {
@@ -56,14 +69,22 @@ public class WriterView {
         String firstName = scanner.nextLine();
         System.out.println("Enter writer lastName: ");
         String lastName = scanner.nextLine();
-        Writer writer = writerController.updateWriter(id, firstName, lastName);
-        System.out.println("writer update : " + writer);
+        try {
+            Writer writer = writerController.updateWriter(id, firstName, lastName);
+            System.out.println("writer update : " + writer);
+        } catch (RepositoryException e) {
+            System.out.println("При обновлении писателя возникла ошибка - " + e);
+        }
     }
 
     public void deleteWriter() {
         System.out.println("Enter writerID: ");
         Long id = Long.parseLong(scanner.nextLine());
-        writerController.deleteWriter(id);
-        System.out.println("Writer is delete");
+        try {
+            writerController.deleteWriter(id);
+            System.out.println("Writer is delete");
+        } catch (RepositoryException e) {
+            System.out.println("При удалении писателя возникла ошибка - " + e);
+        }
     }
 }

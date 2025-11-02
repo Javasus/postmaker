@@ -1,6 +1,5 @@
 package org.nosulkora.postmaker.repository.impl;
 
-import org.nosulkora.postmaker.database.DatabaseManager;
 import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Status;
@@ -12,7 +11,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class JdbcLabelRepositoryImpl implements LabelRepository {
 
@@ -35,77 +36,147 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
             "SELECT id, name, status FROM postmaker.labels WHERE name = ? AND status != 'DELETED'";
 
     private static final String SQL_GET_LABELS_BY_POST_ID = """
-        SELECT l.id, l.name, l.status
-        FROM postmaker.labels l
-        JOIN postmaker.post_labels pl ON l.id = pl.label_id
-        WHERE pl.post_id = ? AND l.status != 'DELETED'
-        ORDER BY l.name
-        """;
+            SELECT l.id, l.name, l.status
+            FROM postmaker.labels l
+            JOIN postmaker.post_labels pl ON l.id = pl.label_id
+            WHERE pl.post_id = ? AND l.status != 'DELETED'
+            ORDER BY l.name
+            """;
 
     @Override
-    public Label save(Label label) {
-        try (Connection conn = ConnectionManager.autoCommitConnection()) {
-            return insertLabel(conn, label);
-        } catch (SQLException e) {
+    public Label save(Label label) throws RepositoryException {
+        try {
+            Long lableId = ConnectionManager.executeInsert(
+                    SQL_CREATE_LABEL,
+                    ps -> setLabelParameters(ps, label)
+            );
+            label.setId(lableId);
+            return label;
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при сохранении лейбла: " + label, e);
         }
     }
 
     @Override
-    public Label update(Label label) {
-        try (Connection conn = DatabaseManager.getConnection()) {
-            updateLabel(conn, label);
+    public Label update(Label label) throws RepositoryException {
+        try {
+            int affectedRows = ConnectionManager.executeUpdate(
+                    SQL_UPDATE_LABEL,
+                    ps -> {
+                        setLabelParameters(ps, label);
+                        try {
+                            ps.setLong(3, label.getId());
+                        } catch (SQLException e) {
+                            throw new RepositoryException("Ошибка установки параметров для обновления лейбла.", e);
+                        }
+                    }
+            );
+            if (affectedRows == 0) {
+                throw new RepositoryException("Лейбл с ID " + label.getId() + " не найден для обновления.");
+            }
             return label;
-        } catch (SQLException e) {
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при обновлении лейбла с id: " + label.getId(), e);
         }
     }
 
     @Override
-    public Label getById(Long id) {
-        try (Connection conn = ConnectionManager.autoCommitConnection();
-        PreparedStatement ps = conn.prepareStatement(SQL_GET_LABEL_BY_ID)) {
-            ps.setLong(1, id);
-
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? mapResultSetToLabel(rs) : null;
-            }
-
-        } catch (SQLException e) {
+    public Label getById(Long id) throws RepositoryException {
+        try {
+            return ConnectionManager.executeQuerySingle(
+                    SQL_GET_LABEL_BY_ID,
+                    this::mapSingleResultSetToLabel,
+                    id
+            );
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при поиске лейбла по id: " + id, e);
         }
     }
 
     @Override
-    public List<Label> getAll() {
-        try (Connection conn = ConnectionManager.autoCommitConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_GET_ALL_LABELS);
-             ResultSet rs = ps.executeQuery()) {
-
-            List<Label> labels = new ArrayList<>();
-            while (rs.next()) {
-                labels.add(mapResultSetToLabel(rs));
-            }
-            return labels;
-
-        } catch (SQLException e) {
+    public List<Label> getAll() throws RepositoryException {
+        try {
+            return ConnectionManager.executeQueryList(
+                    SQL_GET_ALL_LABELS,
+                    this::mapResultSetToLabelList
+            );
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при получении всех лейблов: ", e);
         }
     }
 
     @Override
-    public void deleteById(Long id) {
-        try (Connection conn = ConnectionManager.autoCommitConnection();
-             PreparedStatement ps = conn.prepareStatement(SQL_DELETE_LABEL)) {
-            ps.setLong(1, id);
-            ps.executeUpdate();
-
-        } catch (SQLException e) {
+    public void deleteById(Long id) throws RepositoryException {
+        try {
+            int affectedRow = ConnectionManager.executeUpdate(SQL_DELETE_LABEL, ps -> {
+                        try {
+                            ps.setLong(1, id);
+                        } catch (SQLException e) {
+                            throw new RepositoryException("Ошибка установки параметра для удаления." + e);
+                        }
+                    }
+            );
+            if (affectedRow == 0) {
+                throw new RepositoryException("лейбл с ID " + id + " не найден для удаления.");
+            }
+        } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при удалении лейбла с id : " + id, e);
         }
     }
 
-    private Label mapResultSetToLabel(ResultSet rs) throws SQLException {
+    //---------------------------private methods-----------------------------------------------------------
+
+    /**
+     * Устанавливает параметры для PreparedStatement из объекта Label
+     */
+    private void setLabelParameters(PreparedStatement ps, Label label) {
+        try {
+            ps.setString(1, label.getName());
+            ps.setString(2, label.getStatus().name());
+        } catch (SQLException e) {
+            throw new RepositoryException("Ошибка установки параметров лейбла." + e);
+        }
+    }
+
+    /**
+     * Маппит ResultSet в один объект Label
+     */
+    private Label mapSingleResultSetToLabel(ResultSet rs) throws RepositoryException {
+        try {
+            if (!rs.next()) {
+                return null;
+            }
+            return createLabelFromResultSet(rs);
+        } catch (SQLException e) {
+            throw new RepositoryException("Ошибка маппинга ResultSet в Label", e);
+        }
+    }
+
+    /**
+     * Маппит ВЕСЬ ResultSet в список Label (для методов, возвращающих List<Label>)
+     */
+    private List<Label> mapResultSetToLabelList(ResultSet rs) {
+        try {
+            Map<Long, Label> labelsMap = new LinkedHashMap<>();
+
+            while (rs.next()) {
+                Long labelId = rs.getLong("id");
+                Label label = labelsMap.get(labelId);
+                if (label == null) {
+                    label = createLabelFromResultSet(rs);
+                    labelsMap.put(labelId, label);
+                }
+            }
+            return new ArrayList<>(labelsMap.values());
+        } catch (SQLException e) {
+            throw new RepositoryException("Ошибка маппинга ResultSet в список Label", e);
+        }
+    }
+
+    /**
+     * Создает базовый объект Label из ResultSet
+     */
+    private Label createLabelFromResultSet(ResultSet rs) throws SQLException {
         Label label = new Label();
         label.setId(rs.getLong("id"));
         label.setName(rs.getString("name"));
@@ -114,7 +185,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
     }
 
     /**
-     *  Создание лейбла.
+     * Создание лейбла.
      */
     private Label insertLabel(Connection conn, Label label) throws SQLException {
         try (PreparedStatement ps = ConnectionManager.preparedStatementWithKeys(conn, SQL_CREATE_LABEL)) {
@@ -137,9 +208,9 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
     }
 
     /**
-     *  Обновляем лейбл.
+     * Обновляем лейбл.
      */
-   private void updateLabel(Connection conn, Label label) throws SQLException {
+    private void updateLabel(Connection conn, Label label) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_LABEL)) {
             ps.setString(1, label.getName());
             ps.setString(2, label.getStatus().name());
@@ -149,5 +220,5 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
                 throw new SQLException("бновление лейбла не удалось, ни одна запись не была изменена.");
             }
         }
-   }
+    }
 }
