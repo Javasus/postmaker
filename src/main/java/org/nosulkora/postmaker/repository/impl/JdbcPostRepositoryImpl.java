@@ -149,18 +149,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
         }
     }
 
-//    @Override
-//    public List<Post> getPostsByWriterId(Long writerId) throws RepositoryException {
-//        try {
-//            return ConnectionManager.executeQueryList(
-//                    SQL_GET_POSTS_BY_WRITER_ID,
-//                    this::mapSingleResultSetToPostWithLabels,
-//                    writerId
-//            );
-//        } catch (RepositoryException e) {
-//            throw new RepositoryException("Ошибка при получении постов автора с writerId =  " + writerId, e);
-//        }
-//    }
+    //------------------------------------private methods-------------------------------------------------------
 
     /**
      * Сохраняет связи постов и лейблов в таблицу post_labels.
@@ -210,30 +199,8 @@ public class JdbcPostRepositoryImpl implements PostRepository {
     }
 
     /**
-     * Создает базовый объект Post из ResultSet
+     * Заполняет PreparedStatement данными из поста.
      */
-    private Post createPostFromResultSet(ResultSet resultSet) throws SQLException {
-        Post post = new Post();
-        post.setId(resultSet.getLong("post_id"));
-        post.setTitle(resultSet.getString("title"));
-        post.setContent(resultSet.getString("content"));
-        post.setWriterId(resultSet.getLong("writer_id"));
-        post.setStatus(Status.valueOf(resultSet.getString("post_status")));
-        post.setLabels(new ArrayList<>());
-        return post;
-    }
-
-    private void addLabelToPostIfPresent(ResultSet resultSet, Post post) throws SQLException {
-        Long labelId = resultSet.getLong("label_id");
-        if (!resultSet.wasNull() && labelId > 0) {
-            Label label = new Label();
-            label.setId(labelId);
-            label.setName(resultSet.getString("label_name"));
-            label.setStatus(Status.valueOf(resultSet.getString("label_status")));
-            post.getLabels().add(label);
-        }
-    }
-
     private void setPostParameters(PreparedStatement ps, Post post) {
         try {
             ps.setString(1, post.getTitle());
@@ -246,53 +213,12 @@ public class JdbcPostRepositoryImpl implements PostRepository {
     }
 
     /**
-     * Маппит ResultSet в объект Post с лейблами (из JOIN запроса)
+     * Маппит ResultSet в один объект Post с лейблами (из JOIN запроса)
      */
     private Post mapSingleResultSetToPostWithLabels(ResultSet rs) {
-        try {
-            if (!rs.next()) {
-                return null;
-            }
-            Post post = createPostFromResultSet(rs);
-            addLabelToPostIfPresent(rs, post);
-
-            // Обрабатываем все строки для этого поста (если есть несколько лейблов)
-            Long firstPostId = post.getId();
-            while (rs.next()) {
-                Long currentPostId = rs.getLong("post_id");
-
-                if (!firstPostId.equals(currentPostId)) {
-                    break;
-                }
-                addLabelToPostIfPresent(rs, post);
-            }
-            return post;
-        } catch (SQLException e) {
-            throw new RepositoryException("Ошибка маппинга ResultSet в Post & Label.", e);
-        }
+        List<Post> posts = mapResultSetToPostList(rs);
+        return posts.isEmpty() ? null : posts.get(0);
     }
-
-//    /**
-//     * Маппит ResultSet в объект Post с лейблами (из JOIN запроса)
-//     */
-//    private Post mapSingleResultSetToPostWithLabels(ResultSet rs, Post cur) {
-//        try {
-//            if (rs.wasNull()) {
-//                return null;
-//            }
-//            Long postId = rs.getLong("post_id");
-//            if (cur != null && postId.equals(cur.getId())) {
-//                addLabelToPostIfPresent(rs, cur);
-//                return cur;
-//            }
-//            Post post = createPostFromResultSet(rs);
-//            addLabelToPostIfPresent(rs, post);
-//
-//            return post;
-//        } catch (SQLException e) {
-//            throw new RepositoryException("Ошибка маппинга ResultSet в Post & Label.", e);
-//        }
-//    }
 
     /**
      * Маппит ВЕСЬ ResultSet в список постов (для методов, возвращающих List<Post>)
@@ -314,6 +240,34 @@ public class JdbcPostRepositoryImpl implements PostRepository {
             return new ArrayList<>(postsMap.values());
         } catch (SQLException e) {
             throw new RepositoryException("Ошибка маппинга ResultSet в список постов", e);
+        }
+    }
+
+    /**
+     * Создает базовый объект Post из ResultSet
+     */
+    private Post createPostFromResultSet(ResultSet resultSet) throws SQLException {
+        Post post = new Post();
+        post.setId(resultSet.getLong("post_id"));
+        post.setTitle(resultSet.getString("title"));
+        post.setContent(resultSet.getString("content"));
+        post.setWriterId(resultSet.getLong("writer_id"));
+        post.setStatus(Status.valueOf(resultSet.getString("post_status")));
+        post.setLabels(new ArrayList<>());
+        return post;
+    }
+
+    /**
+     * Добавляет лейбл в пост.
+     */
+    private void addLabelToPostIfPresent(ResultSet resultSet, Post post) throws SQLException {
+        Long labelId = resultSet.getLong("label_id");
+        if (!resultSet.wasNull() && labelId > 0) {
+            Label label = new Label();
+            label.setId(labelId);
+            label.setName(resultSet.getString("label_name"));
+            label.setStatus(Status.valueOf(resultSet.getString("label_status")));
+            post.getLabels().add(label);
         }
     }
 }

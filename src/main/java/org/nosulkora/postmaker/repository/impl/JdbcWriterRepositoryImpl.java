@@ -8,7 +8,6 @@ import org.nosulkora.postmaker.model.Writer;
 import org.nosulkora.postmaker.repository.ConnectionManager;
 import org.nosulkora.postmaker.repository.WriterRepository;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -115,20 +114,20 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
     @Override
     public void deleteById(Long id) throws RepositoryException {
-        try  {
-           int affectedRows = ConnectionManager.executeUpdate(
-                   SQL_DELETE_WRITER,
-                   ps -> {
-                       try{
-                           ps.setLong(1, id);
-                       } catch (SQLException e) {
-                           throw new RepositoryException("Ошибка установки параметра для удаления." + e);
-                       }
-                   });
+        try {
+            int affectedRows = ConnectionManager.executeUpdate(
+                    SQL_DELETE_WRITER,
+                    ps -> {
+                        try {
+                            ps.setLong(1, id);
+                        } catch (SQLException e) {
+                            throw new RepositoryException("Ошибка установки параметра для удаления." + e);
+                        }
+                    });
 
-           if (affectedRows == 0) {
-               throw new RepositoryException("Писатель с ID " + id + " не найден для удаления.");
-           }
+            if (affectedRows == 0) {
+                throw new RepositoryException("Писатель с ID " + id + " не найден для удаления.");
+            }
         } catch (RepositoryException e) {
             throw new RepositoryException("Ошибка при удалении писателя с id: " + id, e);
         }
@@ -137,29 +136,15 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
     //------------------------------------private methods-------------------------------------------------------
 
     /**
-     * Маппит ResultSet в объект Writer с постами и лейблами (из JOIN запроса)
+     * Маппит ResultSet в один объект Writer с постами и лейблами (из JOIN запроса)
      */
     private Writer mapSingleResultSetToWriterWithPostsAndLabels(ResultSet rs) throws RepositoryException {
         List<Writer> writers = extractWritersFromResultSet(rs);
-        return  writers.isEmpty() ? null : writers.get(0);
-    }
-
-    private void addPostToWriterIfPresent(ResultSet rs, Writer writer) throws SQLException {
-        Long postId = rs.getLong("post_id");
-        if (!rs.wasNull() && postId > 0) {
-            Post post = new Post();
-            post.setId(postId);
-            post.setTitle(rs.getString("title"));
-            post.setContent(rs.getString("content"));
-            post.setWriterId(rs.getLong("post_writer_id"));
-            post.setStatus(Status.valueOf(rs.getString("post_status")));
-            post.setLabels(new ArrayList<>());
-            writer.getPosts().add(post);
-        }
+        return writers.isEmpty() ? null : writers.get(0);
     }
 
     /**
-     * Извлекает писателей с постами и лейблами из resultSet.
+     * Маппит ВЕСЬ ResultSet в список писателей с постами и лейблами
      */
     private List<Writer> extractWritersFromResultSet(ResultSet rs) {
         try {
@@ -263,22 +248,6 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
             ps.setString(3, writer.getStatus().name());
         } catch (SQLException e) {
             throw new RepositoryException("шибка установки параметров писателя.", e);
-        }
-    }
-
-    /**
-     * Обновляет писателя.
-     */
-    private void updateWriter(Connection conn, Writer writer) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_WRITER)) {
-            ps.setString(1, writer.getFirstName());
-            ps.setString(2, writer.getLastName());
-            ps.setString(3, writer.getStatus().name());
-            ps.setLong(4, writer.getId());
-
-            if (ps.executeUpdate() == 0) {
-                throw new SQLException("Не удалось обновить писателя, ни одна запись не была изменена.");
-            }
         }
     }
 }

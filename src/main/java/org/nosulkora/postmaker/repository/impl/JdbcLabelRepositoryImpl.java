@@ -6,7 +6,6 @@ import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.repository.ConnectionManager;
 import org.nosulkora.postmaker.repository.LabelRepository;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -182,43 +181,5 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
         label.setName(rs.getString("name"));
         label.setStatus(Status.valueOf(rs.getString("status")));
         return label;
-    }
-
-    /**
-     * Создание лейбла.
-     */
-    private Label insertLabel(Connection conn, Label label) throws SQLException {
-        try (PreparedStatement ps = ConnectionManager.preparedStatementWithKeys(conn, SQL_CREATE_LABEL)) {
-            ps.setString(1, label.getName());
-            ps.setString(2, label.getStatus().name());
-
-            if (ps.executeUpdate() == 0) {
-                throw new SQLException("Не удалось создать лейбл, ни одна запись не была добавлена.");
-            }
-
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    label.setId(rs.getLong(1));
-                    return label;
-                } else {
-                    throw new SQLException("Не удалось создать лейбл, id не получен.");
-                }
-            }
-        }
-    }
-
-    /**
-     * Обновляем лейбл.
-     */
-    private void updateLabel(Connection conn, Label label) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(SQL_UPDATE_LABEL)) {
-            ps.setString(1, label.getName());
-            ps.setString(2, label.getStatus().name());
-            ps.setLong(3, label.getId());
-
-            if (ps.executeUpdate() == 0) {
-                throw new SQLException("бновление лейбла не удалось, ни одна запись не была изменена.");
-            }
-        }
     }
 }
