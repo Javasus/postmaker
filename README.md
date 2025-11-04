@@ -99,7 +99,7 @@ postmaker/
 - **Liquibase** - управление миграциями БД
 - **JUnit 5** - модульное тестирование
 - **Mockito** - мокирование зависимостей
-- **Gson** - работа с JSON
+- **slf4j** - логирование
 
 ## 💾 Реализации репозиториев
 
@@ -187,6 +187,12 @@ java -Dfile.encoding=UTF-8 -jar build/libs/postmaker.jar
 ./gradlew build        # Сборка проекта
 ./gradlew test         # Запуск тестов
 ./gradlew clean        # Очистка build директории
+
+для запуска с разными уровнями логирования :
+
+./gradlew runSilent    # Только ошибки
+./gradlew runInfo      # Информационные сообщения
+./gradlew runDebug     # Все логи
 ```
 
 ### Управление базой данных
@@ -264,4 +270,4 @@ repository.type=gson
 
 ## 📄 Лицензия
 
-[Указать лицензию проекта]
+Учебная лицензия.

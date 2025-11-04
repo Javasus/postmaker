@@ -3,7 +3,6 @@ package org.nosulkora.postmaker.view;
 import org.nosulkora.postmaker.controller.LabelController;
 import org.nosulkora.postmaker.controller.PostController;
 import org.nosulkora.postmaker.controller.WriterController;
-import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Writer;
@@ -63,24 +62,20 @@ public class PostView {
             String text = scanner.nextLine();
             if (text.trim().matches("[0-9.]*")) {
                 Long writerId = Long.parseLong(text);
-                try {
-                    writer = writerController.getWriterById(writerId);
-                } catch (RepositoryException e) {
-                    System.out.println("При возврате писателя возникла ошибка - " + e);
-                }
+                writer = writerController.getWriterById(writerId);
                 if (Objects.isNull(writer)) {
-                    System.out.println("ты ввёл некорректный ID.");
+                    System.out.println("При возврате писателя возникла ошибка.");
                 }
             } else if (text.trim().matches("new")) {
                 System.out.println("Enter writer firstName: ");
                 String firstName = scanner.nextLine();
                 System.out.println("Enter writer lastName: ");
                 String lastName = scanner.nextLine();
-                try {
-                    writer = writerController.createWriter(firstName, lastName);
+                writer = writerController.createWriter(firstName, lastName);
+                if (Objects.isNull(writer)) {
+                    System.out.println("При создании писателя возникла ошибка");
+                } else {
                     System.out.println("writer create: " + writer);
-                } catch (RepositoryException e) {
-                    System.out.println("При создании писателя возникла ошибка - " + e);
                 }
             } else {
                 System.out.println("Не верный ввод, попробуйте ещё раз.");
@@ -91,31 +86,31 @@ public class PostView {
         System.out.println("Enter post content: ");
         String content = scanner.nextLine();
         List<Label> labels = addLabels();
-        try {
-            Post post = postController.createPost(title, content, writer.getId(), labels);
+        Post post = postController.createPost(title, content, writer.getId(), labels);
+        if (Objects.isNull(post)) {
+            System.out.println("При создании поста произощла ошибка");
+        } else {
             System.out.println("post create : " + post);
-        } catch (RepositoryException e) {
-            System.out.println("При создании поста произощла ошибка - " + e);
         }
     }
 
     public void getPostById() {
         System.out.println("Enter postID: ");
         Long id = Long.parseLong(scanner.nextLine());
-        try {
-            Post post = postController.getPostById(id);
+        Post post = postController.getPostById(id);
+        if (Objects.isNull(post)) {
+            System.out.println("При возврате поста по ID = " + id + " возникла ошибка");
+        } else {
             System.out.println("Post by ID: " + post);
-        } catch (RepositoryException e) {
-            System.out.println("При возврате поста по ID возникла ошибка - " + e);
         }
     }
 
     public void getAllPosts() {
-        try {
-            List<Post> posts = postController.getAllPosts();
+        List<Post> posts = postController.getAllPosts();
+        if (Objects.isNull(posts)) {
+            System.out.println("При возврате всех постов возникла ошибка");
+        } else {
             posts.forEach(System.out::println);
-        } catch (RepositoryException e) {
-            System.out.println("При возврате всех постов возникла ошибка - " + e);
         }
     }
 
@@ -127,33 +122,32 @@ public class PostView {
         System.out.println("Enter new post content: ");
         String content = scanner.nextLine();
         List<Label> labels = addLabels();
-        try {
-            Post post = postController.updatePost(id, title, content, labels);
+        Post post = postController.updatePost(id, title, content, labels);
+        if (Objects.isNull(post)) {
+            System.out.println("При обновлении поста с ID = " + id + " возникла ошибка");
+        } else {
             System.out.println("post update : " + post);
-        } catch (RepositoryException e) {
-            System.out.println("При обновлении поста возникла ошибка - " + e);
         }
     }
 
     public void deletePost() {
-        System.out.println("Enter postId: ");
+        System.out.println("Введите postId: ");
         Long id = Long.parseLong(scanner.nextLine());
-        try {
-            postController.deletePost(id);
-            System.out.println("Post is deleted.");
-        } catch (RepositoryException e) {
-            System.out.println("При удалении поста возникла ошибка - " + e);
+        if (postController.deletePost(id)) {
+            System.out.println("Пост удалён");
+        } else {
+            System.out.println("При удалении поста возникла ошибка");
         }
     }
 
     private List<Label> addLabels() {
         System.out.println(
                 "Введи один или несколько label или введи id существующего из списка. В конце введи пустую строку.");
-        try {
-            List<Label> allLabels = labelController.getAllLabels();
+        List<Label> allLabels = labelController.getAllLabels();
+        if (Objects.isNull(allLabels)) {
+            System.out.println("Возникла ошибка при возврате всех лейблов");
+        } else {
             allLabels.forEach(System.out::println);
-        } catch (RepositoryException e) {
-            System.out.println("При возврате всех лейблов возникла ошибка - " + e);
         }
         List<Label> result = new ArrayList<>();
         while (scanner.hasNextLine()) {
@@ -163,21 +157,17 @@ public class PostView {
             Label label = null;
             if (text.trim().matches("[0-9.]*")) {
                 Long id = Long.parseLong(text);
-                try {
-                    label = labelController.getLabelById(id);
-                } catch (RepositoryException e) {
-                    System.out.println("При возврате лейбла по ID возникла ошибка - " + e);
+                label = labelController.getLabelById(id);
+                if (Objects.isNull(label)) {
+                    System.out.println("При поиске лейбла по ID = " + id + " возникла ошибка");
                 }
             }
-
             if (Objects.isNull(label)) {
-                try {
-                    label = labelController.createLabel(text);
-                } catch (RepositoryException e) {
-                    System.out.println("При создании лейбла возникла ошибка - " + e);
+                label = labelController.createLabel(text);
+                if (Objects.isNull(label)) {
+                    System.out.println("При создании лейбла c name = " + text + " возникла ошибка");
                 }
             }
-
             result.add(label);
         }
         return result;

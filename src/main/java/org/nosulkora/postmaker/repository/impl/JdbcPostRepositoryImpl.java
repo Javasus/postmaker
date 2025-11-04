@@ -1,11 +1,12 @@
 package org.nosulkora.postmaker.repository.impl;
 
-import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.repository.ConnectionManager;
 import org.nosulkora.postmaker.repository.PostRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class JdbcPostRepositoryImpl implements PostRepository {
+    private static final Logger logger = LoggerFactory.getLogger(JdbcPostRepositoryImpl.class);
 
     private static final String SQL_GET_POST_BY_ID = """
             SELECT
@@ -69,84 +71,84 @@ public class JdbcPostRepositoryImpl implements PostRepository {
             "DELETE FROM postmaker.post_labels WHERE post_id = ?";
 
     @Override
-    public Post save(Post post) throws RepositoryException {
-        try {
-            Long postId = ConnectionManager.executeInsert(
-                    SQL_CREATE_POST,
-                    ps -> setPostParameters(ps, post)
-            );
-
-            post.setId(postId);
-
-            if (post.getLabels() != null && !post.getLabels().isEmpty()) {
-                savePostLabels(post.getId(), post.getLabels());
-            }
-            return post;
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при сохранении поста: " + post, e);
+    public Post save(Post post) {
+        Long postId = ConnectionManager.executeInsert(
+                SQL_CREATE_POST,
+                ps -> setPostParameters(ps, post)
+        );
+        if (postId == null) {
+            logger.error("Не удалось сохранить пост в БД: {} {}", post.getTitle(), post.getContent());
+            return null;
         }
+        post.setId(postId);
+
+        if (post.getLabels() != null && !post.getLabels().isEmpty()) {
+            savePostLabels(post.getId(), post.getLabels());
+        }
+        return post;
     }
 
     @Override
-    public Post update(Post post) throws RepositoryException {
-        try {
-            int affectedRows = ConnectionManager.executeUpdate(
-                    SQL_UPDATE_POST,
-                    ps -> {
-                        try {
-                            setPostParameters(ps, post);
-                            ps.setLong(5, post.getId());
-                        } catch (SQLException e) {
-                            throw new RepositoryException("Ошибка установки параметров для обновления поста", e);
-                        }
+    public Post update(Post post) {
+        int affectedRows = ConnectionManager.executeUpdate(
+                SQL_UPDATE_POST,
+                ps -> {
+                    try {
+                        setPostParameters(ps, post);
+                        ps.setLong(5, post.getId());
+                    } catch (SQLException e) {
+                        logger.error("Ошибка установки параметров для обновления поста", e);
                     }
-            );
-            if (affectedRows == 0) {
-                throw new RepositoryException("Пост с ID " + post.getId() + " не найден для обновления.");
-            }
-            updatePostLabels(post);
-            return post;
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при обновлении поста: " + post, e);
-        }
-    }
-
-    @Override
-    public Post getById(Long id) throws RepositoryException {
-        try {
-            return ConnectionManager.executeQuerySingle(
-                    SQL_GET_POST_BY_ID,
-                    this::mapSingleResultSetToPostWithLabels,
-                    id
-            );
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при поиске поста с id = " + id, e);
-        }
-    }
-
-    @Override
-    public List<Post> getAll() throws RepositoryException {
-        return ConnectionManager.executeQueryList(SQL_GET_ALL_POSTS, this::mapResultSetToPostList);
-    }
-
-    @Override
-    public void deleteById(Long id) throws RepositoryException {
-        // Soft delete
-        try {
-            int affectedRows = ConnectionManager.executeUpdate(SQL_DELETE_POST, ps -> {
-                try {
-                    ps.setLong(1, id);
-                } catch (SQLException e) {
-                    throw new RepositoryException("Ошибка установки параметра для удаления." + e);
                 }
-            });
-
-            if (affectedRows == 0) {
-                throw new RepositoryException("Пост с ID " + id + " не найден для удаления.");
-            }
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при удалении поста с id =  " + id, e);
+        );
+        if (affectedRows == 0) {
+            logger.error("Пост с ID " + post.getId() + " не найден для обновления.");
+            return null;
         }
+        updatePostLabels(post);
+        return post;
+    }
+
+    @Override
+    public Post getById(Long id) {
+        Post post = ConnectionManager.executeQuerySingle(
+                SQL_GET_POST_BY_ID,
+                this::mapSingleResultSetToPostWithLabels,
+                id
+        );
+        if (Objects.isNull(post)) {
+            logger.error("Не удалось вернуть пост по ID: {}", id);
+            return null;
+        }
+        return post;
+    }
+
+    @Override
+    public List<Post> getAll() {
+        List<Post> posts = ConnectionManager.executeQueryList(SQL_GET_ALL_POSTS, this::mapResultSetToPostList);
+        if (Objects.isNull(posts)) {
+            logger.error("Ошибка при возврате всех постов.");
+            return null;
+        }
+        return posts;
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        // Soft delete
+        int affectedRows = ConnectionManager.executeUpdate(SQL_DELETE_POST, ps -> {
+            try {
+                ps.setLong(1, id);
+            } catch (SQLException e) {
+                logger.error("Ошибка установки параметра для удаления.", e);
+            }
+        });
+
+        if (affectedRows == 0) {
+            logger.error("Пост с ID " + id + " не найден для удаления.");
+            return false;
+        }
+        return true;
     }
 
     //------------------------------------private methods-------------------------------------------------------
@@ -154,48 +156,40 @@ public class JdbcPostRepositoryImpl implements PostRepository {
     /**
      * Сохраняет связи постов и лейблов в таблицу post_labels.
      */
-    private void savePostLabels(Long postId, List<Label> labels) throws RepositoryException {
-        try {
-            ConnectionManager.executeBatch(
-                    SQL_SAVE_LABEL_POST,
-                    ps -> labels.forEach(label -> {
-                        try {
-                            ps.setLong(1, postId);
-                            ps.setLong(2, label.getId());
-                            ps.addBatch();
-                        } catch (SQLException e) {
-                            throw new RepositoryException("Ошибка добавления batch для лейбла.", e);
-                        }
-                    })
-            );
-        } catch (RepositoryException e) {
-            throw new RepositoryException("ошибка при сохранении лейблов для поста с ID: " + postId, e);
-        }
+    private void savePostLabels(Long postId, List<Label> labels) {
+        ConnectionManager.executeBatch(
+                SQL_SAVE_LABEL_POST,
+                ps -> labels.forEach(label -> {
+                    try {
+                        ps.setLong(1, postId);
+                        ps.setLong(2, label.getId());
+                        ps.addBatch();
+                    } catch (SQLException e) {
+                        logger.error("Ошибка добавления batch для лейбла.", e);
+                    }
+                })
+        );
     }
 
     /**
      * Обновляет лейблы поста (удаляет старые, сохраняет новые)
      */
-    private void updatePostLabels(Post post) throws RepositoryException {
-        try {
-            // Удоляем старые лейблы
-            ConnectionManager.executeUpdate(
-                    SQL_DELETE_POST_LABELS,
-                    ps -> {
-                        try {
-                            ps.setLong(1, post.getId());
-                        } catch (SQLException e) {
-                            throw new RepositoryException("Ошибка при установке параметра для обновления лейбла" + e);
-                        }
+    private void updatePostLabels(Post post) {
+        // Удоляем старые лейблы
+        ConnectionManager.executeUpdate(
+                SQL_DELETE_POST_LABELS,
+                ps -> {
+                    try {
+                        ps.setLong(1, post.getId());
+                    } catch (SQLException e) {
+                        logger.error("Ошибка при установке параметра для обновления лейбла" + e);
                     }
-            );
-            // добавляем новые лейблы
-            Optional.ofNullable(post.getLabels())
-                    .filter(labels -> !labels.isEmpty())
-                    .ifPresent(labels -> savePostLabels(post.getId(), labels));
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при обновлении лейблов для постов с ID: " + post.getId(), e);
-        }
+                }
+        );
+        // добавляем новые лейблы
+        Optional.ofNullable(post.getLabels())
+                .filter(labels -> !labels.isEmpty())
+                .ifPresent(labels -> savePostLabels(post.getId(), labels));
     }
 
     /**
@@ -208,7 +202,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
             ps.setLong(3, post.getWriterId());
             ps.setString(4, post.getStatus().name());
         } catch (SQLException e) {
-            throw new RepositoryException("Ошибка установки параметров поста." + e);
+            logger.error("Ошибка установки параметров поста.", e);
         }
     }
 
@@ -217,7 +211,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
      */
     private Post mapSingleResultSetToPostWithLabels(ResultSet rs) {
         List<Post> posts = mapResultSetToPostList(rs);
-        return posts.isEmpty() ? null : posts.get(0);
+        return posts == null || posts.isEmpty() ? null : posts.get(0);
     }
 
     /**
@@ -232,14 +226,23 @@ public class JdbcPostRepositoryImpl implements PostRepository {
 
                 Post post = postsMap.get(postId);
                 if (post == null) {
-                    post = createPostFromResultSet(rs);
+                    try {
+                        post = createPostFromResultSet(rs);
+                    } catch (SQLException e) {
+                        logger.error("Ошибка при получении поста из ResultSet: {}", rs, e);
+                    }
                     postsMap.put(postId, post);
                 }
-                addLabelToPostIfPresent(rs, post);
+                try {
+                    addLabelToPostIfPresent(rs, post);
+                } catch (SQLException e) {
+                    logger.error("Ошибка при получении лейбла из ResultSet и добавлении в пост: {}", rs, e);
+                }
             }
             return new ArrayList<>(postsMap.values());
         } catch (SQLException e) {
-            throw new RepositoryException("Ошибка маппинга ResultSet в список постов", e);
+            logger.error("Ошибка маппинга ResultSet в список постов с лейблами", e);
+            return null;
         }
     }
 

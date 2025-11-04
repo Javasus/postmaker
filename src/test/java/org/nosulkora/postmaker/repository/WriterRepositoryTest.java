@@ -24,6 +24,6 @@ class WriterRepositoryTest {
     void shouldFindTestWriter() {
         Writer writer = writerRepository.getById(1L);
         assertNotNull(writer);
-        assertEquals("Тестовый", writer.getFirstName());
+        assertEquals("Роман", writer.getFirstName());
     }
 }

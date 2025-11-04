@@ -7,6 +7,7 @@ import org.nosulkora.postmaker.repository.LabelRepository;
 import org.nosulkora.postmaker.repository.impl.JdbcLabelRepositoryImpl;
 
 import java.util.List;
+import java.util.Objects;
 
 public class LabelController {
 
@@ -37,11 +38,14 @@ public class LabelController {
 
     public Label updateLabel(Long id, String name) throws RepositoryException {
         Label label = labelRepository.getById(id);
-        label.setName(name);
-        return labelRepository.update(label);
+        if (Objects.nonNull(label)) {
+            label.setName(name);
+            return labelRepository.update(label);
+        }
+        return null;
     }
 
-    public void deleteLabel(Long id) throws RepositoryException {
-        labelRepository.deleteById(id);
+    public boolean deleteLabel(Long id) throws RepositoryException {
+        return labelRepository.deleteById(id);
     }
 }

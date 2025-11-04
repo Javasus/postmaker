@@ -12,5 +12,5 @@ public interface GenericRepository<T, ID> {
 
     List<T> getAll();
 
-    void deleteById(ID id);
+    boolean deleteById(ID id);
 }

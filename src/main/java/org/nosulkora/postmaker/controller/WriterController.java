@@ -6,6 +6,7 @@ import org.nosulkora.postmaker.model.Writer;
 import org.nosulkora.postmaker.repository.WriterRepository;
 
 import java.util.List;
+import java.util.Objects;
 
 public class WriterController {
 
@@ -26,11 +27,7 @@ public class WriterController {
     }
 
     public Writer getWriterById(Long id) throws RepositoryException {
-        Writer writer = writerRepository.getById(id);
-        if (writer == null) {
-           throw new IllegalArgumentException("Не найден писатель с id = " + id);
-        }
-        return writer;
+        return writerRepository.getById(id);
     }
 
     public List<Writer> getAllWriters() throws RepositoryException {
@@ -39,12 +36,15 @@ public class WriterController {
 
     public Writer updateWriter(Long id, String firstName, String lastName) throws RepositoryException {
         Writer writer = getWriterById(id);
-        writer.setFirstName(firstName);
-        writer.setLastName(lastName);
-        return writerRepository.update(writer);
+        if (Objects.nonNull(writer)) {
+            writer.setFirstName(firstName);
+            writer.setLastName(lastName);
+            return writerRepository.update(writer);
+        }
+        return null;
     }
 
-    public void deleteWriter(Long id) throws RepositoryException {
-        writerRepository.deleteById(id);
+    public boolean deleteWriter(Long id) throws RepositoryException {
+        return writerRepository.deleteById(id);
     }
 }

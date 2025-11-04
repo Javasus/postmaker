@@ -133,6 +133,8 @@ public class WriteControllerTest {
         verify(writerRepository, times(1)).getAll();
     }
 
+    // TODO Надо написать тест когда в writerController.updateWriter метод Writer writer = getWriterById(id); возвращает
+//    null.
     @Test
     @DisplayName("Update writer.")
     void updateWriterTest() {

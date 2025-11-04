@@ -1,22 +1,21 @@
 package org.nosulkora.postmaker.repository.impl;
 
-import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.model.Writer;
 import org.nosulkora.postmaker.repository.ConnectionManager;
 import org.nosulkora.postmaker.repository.WriterRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class JdbcWriterRepositoryImpl implements WriterRepository {
+    private static final Logger logger = LoggerFactory.getLogger(JdbcWriterRepositoryImpl.class);
 
     private static final String SQL_CREATE_WRITER =
             "INSERT INTO postmaker.writers (first_name, last_name, status) VALUES (?, ?, ?)";
@@ -52,85 +51,82 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
             "UPDATE postmaker.writers SET status = 'DELETED' WHERE id = ?";
 
     @Override
-    public Writer save(Writer writer) throws RepositoryException {
-        try {
-            Long writerId = ConnectionManager.executeInsert(
-                    SQL_CREATE_WRITER,
-                    ps -> setWriterParameters(ps, writer)
-            );
-            writer.setId(writerId);
-            return writer;
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при сохранении писателя: " + writer, e);
+    public Writer save(Writer writer) {
+        Long writerId = ConnectionManager.executeInsert(
+                SQL_CREATE_WRITER,
+                ps -> setWriterParameters(ps, writer)
+        );
+        if (writerId == null) {
+            logger.error("Не удалось сохранить писателя в БД: {} {}", writer.getFirstName(), writer.getLastName());
+            return null;
         }
+        writer.setId(writerId);
+        return writer;
     }
 
     @Override
-    public Writer update(Writer writer) throws RepositoryException {
-        try {
-            int affectedRaws = ConnectionManager.executeUpdate(
-                    SQL_UPDATE_WRITER,
-                    ps -> {
-                        try {
-                            setWriterParameters(ps, writer);
-                            ps.setLong(4, writer.getId());
-                        } catch (SQLException e) {
-                            throw new RepositoryException("Ошибка установки параметров для обновления writer", e);
-                        }
+    public Writer update(Writer writer) {
+        int affectedRaws = ConnectionManager.executeUpdate(
+                SQL_UPDATE_WRITER,
+                ps -> {
+                    try {
+                        setWriterParameters(ps, writer);
+                        ps.setLong(4, writer.getId());
+                    } catch (SQLException e) {
+                        logger.error("Ошибка установки параметров для обновления writer", e);
                     }
-            );
-            if (affectedRaws == 0) {
-                throw new RepositoryException("Writer с ID " + writer.getId() + " не найден для обновления.");
-            }
-            return writer;
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при обновлении писателя: " + writer, e);
+                }
+        );
+        if (affectedRaws == 0) {
+            logger.error("Writer с ID " + writer.getId() + " не найден для обновления.");
+            return null;
         }
+        return writer;
     }
 
     @Override
-    public Writer getById(Long id) throws RepositoryException {
-        try {
-            return ConnectionManager.executeQuerySingle(
-                    SQL_GET_WRITER_BY_ID,
-                    this::mapSingleResultSetToWriterWithPostsAndLabels,
-                    id
-            );
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при поиске писателя с id: " + id, e);
+    public Writer getById(Long id) {
+        Writer writer = ConnectionManager.executeQuerySingle(
+                SQL_GET_WRITER_BY_ID,
+                this::mapSingleResultSetToWriterWithPostsAndLabels,
+                id
+        );
+        if (Objects.isNull(writer)) {
+            logger.error("Не удалось вернуть писателя по ID: {}", id);
+            return null;
         }
+        return writer;
     }
 
     @Override
-    public List<Writer> getAll() throws RepositoryException {
-        try {
-            return ConnectionManager.executeQueryList(
-                    SQL_GET_ALL_WRITERS,
-                    this::extractWritersFromResultSet);
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при получении всех писателей.", e);
+    public List<Writer> getAll() {
+        List<Writer> writers = ConnectionManager.executeQueryList(
+                SQL_GET_ALL_WRITERS,
+                this::extractWritersFromResultSet);
+        if (Objects.isNull(writers)) {
+            logger.error("Ошибка при возврате всех писателей.");
+            return null;
         }
+        return writers;
     }
 
     @Override
-    public void deleteById(Long id) throws RepositoryException {
-        try {
-            int affectedRows = ConnectionManager.executeUpdate(
-                    SQL_DELETE_WRITER,
-                    ps -> {
-                        try {
-                            ps.setLong(1, id);
-                        } catch (SQLException e) {
-                            throw new RepositoryException("Ошибка установки параметра для удаления." + e);
-                        }
-                    });
+    public boolean deleteById(Long id) {
+        int affectedRows = ConnectionManager.executeUpdate(
+                SQL_DELETE_WRITER,
+                ps -> {
+                    try {
+                        ps.setLong(1, id);
+                    } catch (SQLException e) {
+                        logger.error("Ошибка установки параметра для удаления.", e);
+                    }
+                });
 
-            if (affectedRows == 0) {
-                throw new RepositoryException("Писатель с ID " + id + " не найден для удаления.");
-            }
-        } catch (RepositoryException e) {
-            throw new RepositoryException("Ошибка при удалении писателя с id: " + id, e);
+        if (affectedRows == 0) {
+            logger.error("Писатель с ID " + id + " не найден для удаления.");
+            return false;
         }
+        return true;
     }
 
     //------------------------------------private methods-------------------------------------------------------
@@ -138,9 +134,9 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
     /**
      * Маппит ResultSet в один объект Writer с постами и лейблами (из JOIN запроса)
      */
-    private Writer mapSingleResultSetToWriterWithPostsAndLabels(ResultSet rs) throws RepositoryException {
+    private Writer mapSingleResultSetToWriterWithPostsAndLabels(ResultSet rs) {
         List<Writer> writers = extractWritersFromResultSet(rs);
-        return writers.isEmpty() ? null : writers.get(0);
+        return writers == null || writers.isEmpty() ? null : writers.get(0);
     }
 
     /**
@@ -160,7 +156,8 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
                     try {
                         return createBasicWriterFromResultSet(rs);
                     } catch (SQLException e) {
-                        throw new RepositoryException("Ошибка при получении писателя из resultSet: " + rs, e);
+                        logger.error("Ошибка при получении писателя из resultSet: {}", rs, e);
+                        return null;
                     }
                 });
 
@@ -171,7 +168,8 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
                         try {
                             return createPostFromResultSet(rs);
                         } catch (SQLException e) {
-                            throw new RepositoryException("Ошибка при получении поста из resultSet: " + rs, e);
+                            logger.error("Ошибка при получении поста из resultSet: {}", rs, e);
+                            return null;
                         }
                     });
 
@@ -185,7 +183,12 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
                     Long labelId = rs.getLong("label_id");
                     if (!rs.wasNull() && labelId > 0) {
-                        Label label = createLabelFromResultSet(rs);
+                        Label label = null;
+                        try {
+                            label = createLabelFromResultSet(rs);
+                        } catch (SQLException e) {
+                            logger.error("Ошибка при получении лейбла из resultSet: {}", rs, e);
+                        }
 
                         if (post.getLabels() == null) {
                             post.setLabels(new ArrayList<>());
@@ -198,7 +201,8 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
             }
             return new ArrayList<>(writersMap.values());
         } catch (SQLException e) {
-            throw new RepositoryException("Ошибка маппинга ResultSet в список писателей.", e);
+            logger.error("Ошибка маппинга ResultSet в список писателей.", e);
+            return null;
         }
     }
 
@@ -241,13 +245,13 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
     /**
      * Добавляет писателя.
      */
-    private void setWriterParameters(PreparedStatement ps, Writer writer) throws RepositoryException {
+    private void setWriterParameters(PreparedStatement ps, Writer writer) {
         try {
             ps.setString(1, writer.getFirstName());
             ps.setString(2, writer.getLastName());
             ps.setString(3, writer.getStatus().name());
         } catch (SQLException e) {
-            throw new RepositoryException("шибка установки параметров писателя.", e);
+            logger.error("Ошибка установки параметров писателя.", e);
         }
     }
 }
