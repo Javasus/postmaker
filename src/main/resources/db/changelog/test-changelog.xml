@@ -1,0 +1,5 @@
+<databaseChangeLog>
+    <include file="001-initial-schema.xml" relativeToChangelogFile="true"/>
+    <!-- Только тестовые данные -->
+    <include file="003-test-data.xml" relativeToChangelogFile="true"/>
+</databaseChangeLog>
