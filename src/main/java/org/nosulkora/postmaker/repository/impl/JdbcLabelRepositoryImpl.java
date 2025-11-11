@@ -1,9 +1,8 @@
 package org.nosulkora.postmaker.repository.impl;
 
-import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Status;
-import org.nosulkora.postmaker.repository.ConnectionManager;
+import org.nosulkora.postmaker.utils.DatabaseManager;
 import org.nosulkora.postmaker.repository.LabelRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +43,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
 
     @Override
     public Label save(Label label) {
-        Long labelId = ConnectionManager.executeInsert(
+        Long labelId = DatabaseManager.executeInsert(
                 SQL_CREATE_LABEL,
                 ps -> setLabelParameters(ps, label)
         );
@@ -58,7 +57,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
 
     @Override
     public Label update(Label label) {
-        int affectedRows = ConnectionManager.executeUpdate(
+        int affectedRows = DatabaseManager.executeUpdate(
                 SQL_UPDATE_LABEL,
                 ps -> {
                     setLabelParameters(ps, label);
@@ -78,7 +77,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
 
     @Override
     public Label getById(Long id) {
-        Label label = ConnectionManager.executeQuerySingle(
+        Label label = DatabaseManager.executeQuerySingle(
                 SQL_GET_LABEL_BY_ID,
                 this::mapSingleResultSetToLabel,
                 id
@@ -92,7 +91,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
 
     @Override
     public List<Label> getAll() {
-        List<Label> labels = ConnectionManager.executeQueryList(
+        List<Label> labels = DatabaseManager.executeQueryList(
                 SQL_GET_ALL_LABELS,
                 this::mapResultSetToLabelList
         );
@@ -105,7 +104,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
 
     @Override
     public boolean deleteById(Long id) {
-        int affectedRow = ConnectionManager.executeUpdate(SQL_DELETE_LABEL, ps -> {
+        int affectedRow = DatabaseManager.executeUpdate(SQL_DELETE_LABEL, ps -> {
                     try {
                         ps.setLong(1, id);
                     } catch (SQLException e) {
@@ -154,7 +153,7 @@ public class JdbcLabelRepositoryImpl implements LabelRepository {
      */
     private List<Label> mapResultSetToLabelList(ResultSet rs) {
         try {
-            Map<Long, Label> labelsMap = new LinkedHashMap<>();
+            Map<Long, Label> labelsMap = new HashMap<>();
 
             while (rs.next()) {
                 Long labelId = rs.getLong("id");

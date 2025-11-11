@@ -19,7 +19,7 @@ public class DatabaseManager {
         config.setDriverClassName("com.mysql.cj.jdbc.Driver");
 
         // настройки пула
-        config.setMaximumPoolSize(20); // макс соединений
+        config.setMaximumPoolSize(10); // макс соединений
         config.setMinimumIdle(5); // мин простаивающих соединений
         config.setConnectionTimeout(30000); // 30сек таймаут на получ. соед.
         config.setIdleTimeout(600000); // 10мин время жизни простаивающего соед.

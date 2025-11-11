@@ -3,7 +3,7 @@ package org.nosulkora.postmaker.repository.impl;
 import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Status;
-import org.nosulkora.postmaker.repository.ConnectionManager;
+import org.nosulkora.postmaker.utils.DatabaseManager;
 import org.nosulkora.postmaker.repository.PostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,7 +72,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
 
     @Override
     public Post save(Post post) {
-        Long postId = ConnectionManager.executeInsert(
+        Long postId = DatabaseManager.executeInsert(
                 SQL_CREATE_POST,
                 ps -> setPostParameters(ps, post)
         );
@@ -83,14 +83,17 @@ public class JdbcPostRepositoryImpl implements PostRepository {
         post.setId(postId);
 
         if (post.getLabels() != null && !post.getLabels().isEmpty()) {
-            savePostLabels(post.getId(), post.getLabels());
+            if (savePostLabels(post.getId(), post.getLabels())) {
+                return post;
+            }
         }
-        return post;
+        logger.error("Не удалось сохранить лейблы и пост в результирующую таблицу{} {}", post.getId(), post.getLabels());
+        return null;
     }
 
     @Override
     public Post update(Post post) {
-        int affectedRows = ConnectionManager.executeUpdate(
+        int affectedRows = DatabaseManager.executeUpdate(
                 SQL_UPDATE_POST,
                 ps -> {
                     try {
@@ -105,13 +108,18 @@ public class JdbcPostRepositoryImpl implements PostRepository {
             logger.error("Пост с ID " + post.getId() + " не найден для обновления.");
             return null;
         }
-        updatePostLabels(post);
-        return post;
+        if (post.getLabels() != null && !post.getLabels().isEmpty()) {
+            if (updatePostLabels(post)){
+                return post;
+            }
+        }
+        logger.error("Не удалось сохранить лейблы и пост в результирующую таблицу{} {}", post.getId(), post.getLabels());
+        return null;
     }
 
     @Override
     public Post getById(Long id) {
-        Post post = ConnectionManager.executeQuerySingle(
+        Post post = DatabaseManager.executeQuerySingle(
                 SQL_GET_POST_BY_ID,
                 this::mapSingleResultSetToPostWithLabels,
                 id
@@ -125,7 +133,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
 
     @Override
     public List<Post> getAll() {
-        List<Post> posts = ConnectionManager.executeQueryList(SQL_GET_ALL_POSTS, this::mapResultSetToPostList);
+        List<Post> posts = DatabaseManager.executeQueryList(SQL_GET_ALL_POSTS, this::mapResultSetToPostList);
         if (Objects.isNull(posts)) {
             logger.error("Ошибка при возврате всех постов.");
             return null;
@@ -136,7 +144,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
     @Override
     public boolean deleteById(Long id) {
         // Soft delete
-        int affectedRows = ConnectionManager.executeUpdate(SQL_DELETE_POST, ps -> {
+        int affectedRows = DatabaseManager.executeUpdate(SQL_DELETE_POST, ps -> {
             try {
                 ps.setLong(1, id);
             } catch (SQLException e) {
@@ -156,8 +164,8 @@ public class JdbcPostRepositoryImpl implements PostRepository {
     /**
      * Сохраняет связи постов и лейблов в таблицу post_labels.
      */
-    private void savePostLabels(Long postId, List<Label> labels) {
-        ConnectionManager.executeBatch(
+    private boolean savePostLabels(Long postId, List<Label> labels) {
+        return DatabaseManager.executeBatch(
                 SQL_SAVE_LABEL_POST,
                 ps -> labels.forEach(label -> {
                     try {
@@ -174,9 +182,9 @@ public class JdbcPostRepositoryImpl implements PostRepository {
     /**
      * Обновляет лейблы поста (удаляет старые, сохраняет новые)
      */
-    private void updatePostLabels(Post post) {
+    private boolean updatePostLabels(Post post) {
         // Удоляем старые лейблы
-        ConnectionManager.executeUpdate(
+        DatabaseManager.executeUpdate(
                 SQL_DELETE_POST_LABELS,
                 ps -> {
                     try {
@@ -187,9 +195,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
                 }
         );
         // добавляем новые лейблы
-        Optional.ofNullable(post.getLabels())
-                .filter(labels -> !labels.isEmpty())
-                .ifPresent(labels -> savePostLabels(post.getId(), labels));
+        return savePostLabels(post.getId(), post.getLabels());
     }
 
     /**
@@ -219,8 +225,7 @@ public class JdbcPostRepositoryImpl implements PostRepository {
      */
     private List<Post> mapResultSetToPostList(ResultSet rs) {
         try {
-            Map<Long, Post> postsMap = new LinkedHashMap<>();
-
+            Map<Long, Post> postsMap = new HashMap<>();
             while (rs.next()) {
                 Long postId = rs.getLong("post_id");
 
