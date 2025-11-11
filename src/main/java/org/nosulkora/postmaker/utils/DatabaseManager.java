@@ -1,7 +1,5 @@
-package org.nosulkora.postmaker.repository;
+package org.nosulkora.postmaker.utils;
 
-import org.nosulkora.postmaker.database.DatabaseManager;
-import org.nosulkora.postmaker.exceptions.RepositoryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,10 +8,10 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ConnectionManager {
-    private static final Logger logger = LoggerFactory.getLogger(ConnectionManager.class);
+public class DatabaseManager {
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseManager.class);
 
-    private ConnectionManager() {
+    private DatabaseManager() {
     }
 
     /**
@@ -122,12 +120,11 @@ public class ConnectionManager {
             executeTransaction(conn -> {
                 try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     batchSetter.accept(ps);
-                    ps.executeBatch();
+                    return ps.executeBatch();
                 } catch (SQLException e) {
                     logger.error("SQL ошибка при выполнении BATCH: {}", sql, e);
                     throw new RuntimeException(e);
                 }
-                return null;
             });
             return true;
         } catch (Exception e) {
@@ -142,18 +139,21 @@ public class ConnectionManager {
     public static <T> T executeTransaction(Function<Connection, T> operation) {
         Connection conn = null;
         try {
-            conn = DatabaseManager.getConnection();
+            conn = org.nosulkora.postmaker.database.DatabaseManager.getConnection();
             conn.setAutoCommit(false);
             logger.debug("Транзакция начата");
 
             T result = operation.apply(conn);
+            if (result == null) {
+                throw new SQLException("Ошибка при выполнении транзакции");
+            }
             conn.commit();
             logger.debug("Транзакция завершена успешно");
             return result;
         } catch (SQLException e) {
             safeRollback(conn);
             logger.error("Ошибка выполнения транзакции", e);
-            throw new RuntimeException("Ошибка транзакции", e);
+            return null;
         } finally {
             safeClose(conn);
         }
@@ -163,7 +163,7 @@ public class ConnectionManager {
      * Выполняет операцию с автокоммитом
      */
     private static <T> T executeAutoCommit(String sql, Function<PreparedStatement, T> operation) {
-        try (Connection conn = DatabaseManager.getConnection();
+        try (Connection conn = org.nosulkora.postmaker.database.DatabaseManager.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             conn.setAutoCommit(true);
             return operation.apply(ps);

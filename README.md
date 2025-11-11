@@ -38,10 +38,7 @@ postmaker/
 │   │   │   │   ├── WriterRepository.java      # Интерфейс репозитория авторов
 │   │   │   │   ├── JdbcLabelRepositoryImpl.java    # JDBC реализация для меток
 │   │   │   │   ├── JdbcPostRepositoryImpl.java     # JDBC реализация для постов
-│   │   │   │   ├── JdbcWriterRepositoryImpl.java   # JDBC реализация для авторов
-│   │   │   │   ├── GsonLabelRepositoryImpl.java    # JSON реализация для меток
-│   │   │   │   ├── GsonPostRepositoryImpl.java     # JSON реализация для постов
-│   │   │   │   └── GsonWriterRepositoryImpl.java   # JSON реализация для авторов
+│   │   │   │   └── JdbcWriterRepositoryImpl.java   # JDBC реализация для авторов
 │   │   │   └── view/                          # Консольный интерфейс
 │   │   │       ├── LabelView.java
 │   │   │       ├── MainView.java             # Главное меню

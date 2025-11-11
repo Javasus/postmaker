@@ -4,7 +4,7 @@ import org.nosulkora.postmaker.model.Label;
 import org.nosulkora.postmaker.model.Post;
 import org.nosulkora.postmaker.model.Status;
 import org.nosulkora.postmaker.model.Writer;
-import org.nosulkora.postmaker.repository.ConnectionManager;
+import org.nosulkora.postmaker.utils.DatabaseManager;
 import org.nosulkora.postmaker.repository.WriterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +52,7 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
     @Override
     public Writer save(Writer writer) {
-        Long writerId = ConnectionManager.executeInsert(
+        Long writerId = DatabaseManager.executeInsert(
                 SQL_CREATE_WRITER,
                 ps -> setWriterParameters(ps, writer)
         );
@@ -66,7 +66,7 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
     @Override
     public Writer update(Writer writer) {
-        int affectedRaws = ConnectionManager.executeUpdate(
+        int affectedRaws = DatabaseManager.executeUpdate(
                 SQL_UPDATE_WRITER,
                 ps -> {
                     try {
@@ -86,7 +86,7 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
     @Override
     public Writer getById(Long id) {
-        Writer writer = ConnectionManager.executeQuerySingle(
+        Writer writer = DatabaseManager.executeQuerySingle(
                 SQL_GET_WRITER_BY_ID,
                 this::mapSingleResultSetToWriterWithPostsAndLabels,
                 id
@@ -100,7 +100,7 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
     @Override
     public List<Writer> getAll() {
-        List<Writer> writers = ConnectionManager.executeQueryList(
+        List<Writer> writers = DatabaseManager.executeQueryList(
                 SQL_GET_ALL_WRITERS,
                 this::extractWritersFromResultSet);
         if (Objects.isNull(writers)) {
@@ -112,7 +112,7 @@ public class JdbcWriterRepositoryImpl implements WriterRepository {
 
     @Override
     public boolean deleteById(Long id) {
-        int affectedRows = ConnectionManager.executeUpdate(
+        int affectedRows = DatabaseManager.executeUpdate(
                 SQL_DELETE_WRITER,
                 ps -> {
                     try {

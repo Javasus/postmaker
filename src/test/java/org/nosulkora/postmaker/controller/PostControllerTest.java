@@ -113,11 +113,9 @@ public class PostControllerTest {
 
         when(writerRepository.getById(POST_WRITER_ID)).thenReturn(null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> postController.createPost(POST_TITLE, POST_CONTENT, POST_WRITER_ID, createTestLabels()));
+        Post post = postController.createPost(POST_TITLE, POST_CONTENT, POST_WRITER_ID, createTestLabels());
 
-        assertEquals("Писатель с ID " + POST_WRITER_ID + " не найден", exception.getMessage());
+        assertNull(post);
 
         verify(writerRepository, times(1)).getById(POST_WRITER_ID);
         verify(postRepository, never()).save(any(Post.class));
@@ -203,15 +201,13 @@ public class PostControllerTest {
     void updatePostWithNotExistentPostTest() {
         when(postRepository.getById(POST_ID)).thenReturn(null);
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> postController.updatePost(
-                        POST_ID,
-                        "TitleEx",
-                        "ContentEx",
-                        Collections.emptyList()));
+        Post post = postController.updatePost(
+                POST_ID,
+                "TitleEx",
+                "ContentEx",
+                Collections.emptyList());
 
-        assertEquals("Пост с ID " + POST_ID + " не найден", exception.getMessage());
+        assertNull(post);
 
         verify(postRepository, times(1)).getById(POST_ID);
         verify(postRepository, never()).update(any(Post.class));

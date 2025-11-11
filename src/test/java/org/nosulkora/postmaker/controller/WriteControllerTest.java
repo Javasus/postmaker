@@ -133,8 +133,6 @@ public class WriteControllerTest {
         verify(writerRepository, times(1)).getAll();
     }
 
-    // TODO Надо написать тест когда в writerController.updateWriter метод Writer writer = getWriterById(id); возвращает
-//    null.
     @Test
     @DisplayName("Update writer.")
     void updateWriterTest() {
@@ -166,15 +164,14 @@ public class WriteControllerTest {
     }
 
     @Test
-    @DisplayName("Get writer by id when writer not found should throw exception.")
-    void getWriterByIdNotFoundTest() {
+    @DisplayName("When update writer and writer is not found return null.")
+    void getUpdateWriterNotFoundTest() {
         when(writerRepository.getById(WRITER_ID)).thenReturn(null);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> writerController.getWriterById(WRITER_ID));
+        Writer actualWriter = writerController.updateWriter(WRITER_ID, "Ivan", "Ivanov");
 
-        assertEquals("Не найден писатель с id = " + WRITER_ID, exception.getMessage());
+        assertNull(actualWriter);
         verify(writerRepository, times(1)).getById(WRITER_ID);
+        verify(writerRepository, never()).update(any(Writer.class));
     }
-
 }
